@@ -55,10 +55,10 @@ locals {
 }
 
 resource "google_certificate_manager_dns_authorization" "a" {
-  for_each  = local.fqdns
-  project   = local.project
-  name      = lower(replace( "${var.name-prefix}${each.key}", ".", "-" ))
-  domain    = each.value
+  for_each      = local.fqdns
+  project       = local.project
+  name          = lower(replace( "${var.name-prefix}${each.key}", ".", "-" ))
+  domain        = each.value
 }
 
 locals {
@@ -77,8 +77,8 @@ resource "google_dns_record_set" "d" {
 }
 
 resource "google_certificate_manager_certificate" "c" {
-  for_each  = local.fqdns
-  name      = lower(replace( "${var.name-prefix}${each.key}", ".", "-" ))
+  for_each      = local.fqdns
+  name          = lower(replace( "${var.name-prefix}${each.key}", ".", "-" ))
   managed {
     domains             = [ local.dns-auth[each.key].domain ]
     dns_authorizations  = [ local.dns-auth[each.key].id ]
@@ -86,9 +86,9 @@ resource "google_certificate_manager_certificate" "c" {
 }
 
 resource "google_certificate_manager_certificate_map" "m" {
-  count     = var.map-name == "" ? 0 : 1
-  name      = var.map-name
-  project   = local.project
+  count         = var.map-name == "" ? 0 : 1
+  name          = var.map-name
+  project       = local.project
 }
 
 locals {
