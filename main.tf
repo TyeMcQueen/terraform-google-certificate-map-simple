@@ -98,6 +98,7 @@ resource "google_certificate_manager_certificate_map" "m" {
 }
 
 locals {
+  keys = [ for h in var.hostnames : split("|",h)[0] ]
   new-certs = google_certificate_manager_certificate.c
   certs = { for h in var.hostnames : split("|",h)[0] =>
     1 < length(split("|",h)) ? split("|",h)[1] : local.new-certs[h].id }

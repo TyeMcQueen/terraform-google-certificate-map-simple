@@ -139,12 +139,24 @@ See [Input Variables](/variables.tf) for details about all of the input
 variables you can use with this module.  Many less commonly used options
 are not covered in the above examples.
 
-You can also see the [Ouput](/outputs.tf) declaration but that is quite
-simple for this module.
+See [Ouput](/outputs.tf) for the declarations of all available output
+values.  Every created resource will be included in one of the output
+values.  There is also `module.NAME.keys` which is just the input
+`var.hostnames` but with any "|cert-id" suffixes stripped.  Each output
+value that is a map will use some or all of these keys.
+
+As documented, you can use `module.NAME.cert-map[0].id` to associate the
+created certificate map with a load balancer.
+
+You can use `module.NAME.certs[HOSTNAME]` to access items in the
+`.provisioning_issue` and `.authorization_attempt_info` records to get
+information about the status of a certificate.
 
 ## Limitations
 
 ### Types Of Certificates
+
+This module does not support Certificates with `scope = "EDGE_CACHE"`.
 
 This module does not simplify the creation of a single DNS-authenticated
 certificate that covers multiple hostnames.  It also does not simplify
