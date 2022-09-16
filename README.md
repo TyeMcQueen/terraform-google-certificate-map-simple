@@ -79,6 +79,8 @@ unrecognized host names.
     }
 
 Of course, you probably want to use a less obvious name for your honeypot.
+And the most common use case would only have 2 hostnames: your honeypot and
+your real service hostname.
 
 The DNS entries for honeypot.my-domain.com etc. will be managed outside
 of the module and do not need to be created before you use this module.  All
