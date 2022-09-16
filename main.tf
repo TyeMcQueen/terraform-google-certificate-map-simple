@@ -58,7 +58,9 @@ resource "google_certificate_manager_dns_authorization" "a" {
   for_each      = local.fqdns
   project       = local.project
   name          = lower(replace( "${var.name-prefix}${each.key}", ".", "-" ))
+  description   = var.description
   domain        = each.value
+  labels        = var.labels
 }
 
 locals {
@@ -79,6 +81,8 @@ resource "google_dns_record_set" "d" {
 resource "google_certificate_manager_certificate" "c" {
   for_each      = local.fqdns
   name          = lower(replace( "${var.name-prefix}${each.key}", ".", "-" ))
+  description   = var.description
+  labels        = var.labels
   managed {
     domains             = [ local.dns-auth[each.key].domain ]
     dns_authorizations  = [ local.dns-auth[each.key].id ]
@@ -88,7 +92,9 @@ resource "google_certificate_manager_certificate" "c" {
 resource "google_certificate_manager_certificate_map" "m" {
   count         = var.map-name == "" ? 0 : 1
   name          = var.map-name
+  description   = var.description
   project       = local.project
+  labels        = merge( var.labels, var.map-labels )
 }
 
 locals {
@@ -107,14 +113,18 @@ resource "google_certificate_manager_certificate_map_entry" "primary" {
   for_each      = local.primary
   map           = google_certificate_manager_certificate_map.m[0].name
   name          = lower(replace( each.key, ".", "-" ))
+  description   = var.description
   certificates  = [ each.value ]
   matcher       = "PRIMARY"
+  labels        = var.labels
 }
 
 resource "google_certificate_manager_certificate_map_entry" "others" {
   for_each      = local.others
   map           = google_certificate_manager_certificate_map.m[0].name
   name          = lower(replace( each.key, ".", "-" ))
+  description   = var.description
   certificates  = [ each.value ]
   hostname      = can(local.fqdns[each.key]) ? local.fqdns[each.key] : each.key
+  labels        = var.labels
 }

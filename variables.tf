@@ -50,6 +50,42 @@ variable "map-name" {
   default       = ""
 }
 
+variable "description" {
+  description   = <<-EOD
+    An optional description to be used on every created resource (except
+    DNS records which don't allow descriptions).
+
+    Example: description = "Created by Terraform module certificate-map-simple"
+  EOD
+  type          = string
+  default       = ""
+}
+
+variable "labels" {
+  description   = <<-EOD
+    A map of label names and values to be applied to every resource created
+    by this module (except DNS records which don't allow labels).
+
+    Example:
+      labels = { team = "my-team", terraform = "my-workspace" }
+  EOD
+  type          = map(string)
+  default       = {}
+}
+
+variable "map-labels" {
+  description   = <<-EOD
+    A map of label names and values to be applied only to the created
+    certificate map.  This is in addition to those in the `labels` input
+    variable.  Though, if the same label name appears in both, then only
+    the value from `map-labels` will be used on the certificate map.
+
+    Example: map-labels = { service = "my-api" }
+  EOD
+  type          = map(string)
+  default       = {}
+}
+
 variable "project" {
   description   = <<-EOD
     GCP Project ID to create Certificate Manager resources in.  Defaults to
