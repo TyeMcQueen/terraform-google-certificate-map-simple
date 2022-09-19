@@ -1,16 +1,21 @@
 
 variable "hostnames" {
   description   = <<-EOD
-    Required list of hostnames that you want GCP-managed certificates for
-    using DNS authorization.  If a hostname contains no "." characters, then
-    the zone domain name is appended.  The first host name will be the
-    "PRIMARY" certificate (handed out for unmatched hostnames).
+    Required list of hostnames that (by default) you want GCP-managed
+    certificates created for using DNS authorization.  If a hostname
+    contains no "." characters or ends with a "." character, then the
+    zone domain name is appended.
 
-    Example: hostnames = [ "api", "web", "my-product.my-domain.com" ]
+    The first host name will be the "PRIMARY" certificate (handed out
+    for unmatched hostnames) if a certificate map is created.
+
+    Example:
+      hostnames = [ "api", "web.stg.", "my-product.my-domain.com" ]
 
     Other types of certificates can be included in the created map by
-    appending to a hostname a "|" followed by the `.id` of the certificate.
-    Doing this with `map-name` left as "" will silently do nothing.
+    appending to a hostname a "|" followed by the `.id` of the certificate
+    that you created outside of this module.  Doing this with `map-name`
+    left as "" will silently do nothing.
 
     Example:
       hostnames         = [
@@ -18,6 +23,10 @@ variable "hostnames" {
         join( "|", "*.my-domain.com",
           google_certificate_manager_certificate.my-cert.id ),
       ]
+
+    Using a fully qualified hostname that is not followed by "|" will only
+    work if the hostname would be a valid addition to the Zone referenced
+    by `dns-zone-ref`.
   EOD
   type          = list(string)
 }
@@ -28,7 +37,12 @@ variable "dns-zone-ref" {
     this project or "$${project-id}/$${name}" for a DNS Zone in a different
     project.  This is where records to meet DNS authorization challenges
     will be added.  The `.dns_name` of the zone will also be appended to
-    any hostnames that contain no "." characters.
+    any hostnames that contain no "." characters or that end in ".".
+
+    If all of your hostnames contain "|" (followed by a certificate
+    `.id`), then you can set `dns-zone-ref = ""` which would require that
+    every hostname be fully qualified, containing at least one "." character
+    and not ending with a "." character.
 
     Examples:
       dns-zone-ref = "my-dns-zone"
