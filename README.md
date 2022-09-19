@@ -102,6 +102,13 @@ containing a single certificate map resource otherwise:
       certificate_map   = module.my-cert-map.cert-map[0].id
     }
 
+For DNS-authorized certs created by this module, the hostname must be a
+subdomain of the GCP-Managed Zone referenced by `dns-zone-ref`.  That domain
+is automatically appended to hostnames that either do not contain any "."
+characters or that end in a "." character.  So, with the above domain
+definition, you could use hostnames like "api", "web.stg.", or
+"web.my-domain.com" and get DNS-authorized certs.
+
 ## Certificates But No Map
 
 The following module usage does not specify `map-name` and so will only
@@ -117,11 +124,13 @@ create the certificates and not a certificate map.
 ## Other Certificate Types
 
 Creating a certificate not using DNS authorization only requires a single
-`resource` block, so this module does not simplify that part of the process.
+`resource` block, so this module does not simplify all of those cases.  But
+we do simplify the creation of simple LB-authorized certificates by just
+appending the literal string "|LB" to the end of a hostname.
 
-But you can use such certificates in the certificate map that this module
-creates.  Simply append to the hostname (in `hostnames`) a "|" followed by
-the `.id` of the certificate.
+And you can use other certificates that you create elsewhere in the
+certificate map that this module creates.  Simply append to the hostname
+(in `hostnames`) a "|" followed by the `.id` of the certificate.
 
     module "my-cert-map" {
       source  = "github.com/TyeMcQueen/terraform-google-certificate-map-simple"
@@ -129,7 +138,7 @@ the `.id` of the certificate.
       dns-zone-ref      = "my-zone"
       map-name          = "my-map"
       hostnames         = [
-        "honeypot",
+        "honeypot|LB",
         join( "|", "*.my-domain.com",
           google_certificate_manager_certificate.wild-cert.id ),
       ]
@@ -158,9 +167,9 @@ information about the status of a certificate.
 
 ### Types Of Certificates
 
-This module does not simplify the creation of a single DNS-authorized
-certificate that covers multiple hostnames.  It also does not simplify
-creation of DNS-authorized certificates where the DNS is not managed
+This module does not simplify the creation of a single certificate that
+covers multiple hostnames (either DNS- or LB-authorized).  It also does not
+simplify creation of DNS-authorized certificates where the DNS is not managed
 in GCP or is managed in a GCP project that your Terraform workspace does
 not have access to.
 

@@ -12,6 +12,9 @@ variable "hostnames" {
     Example:
       hostnames = [ "api", "web.stg.", "my-product.my-domain.com" ]
 
+    Appending a literal "|LB" to a hostname will cause an LB-authorized
+    cert to be created instead of a DNS-authorized one.
+
     Other types of certificates can be included in the created map by
     appending to a hostname a "|" followed by the `.id` of the certificate
     that you created outside of this module.  Doing this with `map-name`
@@ -19,7 +22,7 @@ variable "hostnames" {
 
     Example:
       hostnames         = [
-        "honeypot",
+        "honeypot", "web.stg.|LB",
         join( "|", "*.my-domain.com",
           google_certificate_manager_certificate.my-cert.id ),
       ]
@@ -39,7 +42,7 @@ variable "dns-zone-ref" {
     will be added.  The `.dns_name` of the zone will also be appended to
     any hostnames that contain no "." characters or that end in ".".
 
-    If all of your hostnames contain "|" (followed by a certificate
+    If all of your hostnames contain "|" (followed by "LB" or a certificate
     `.id`), then you can set `dns-zone-ref = ""` which would require that
     every hostname be fully qualified, containing at least one "." character
     and not ending with a "." character.
