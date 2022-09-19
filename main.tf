@@ -25,7 +25,7 @@ locals {
   zone-proj = ( 2 == length(local.dns-parts)
     ? local.dns-parts[0] : local.project )
   # Only use local.dns-data-title in 'data "google_dns_managed_zone"' block:
-  dns-data-title = (
+  dns-data-title = ( var.dns-zone-ref == "" ? ""
     2 == length(local.dns-parts) ? local.dns-parts[1] :
     1 == length(local.dns-parts) ? local.dns-parts[0] :
     "For dns-zone-ref, resource ID is not supported (${var.dns-zone-ref})" )
@@ -33,6 +33,7 @@ locals {
 
 # Look up managed DNS zone created elsewhere:
 data "google_dns_managed_zone" "z" {
+  count     = local.dns-data-title == "" ? 0 : 1
   name      = local.dns-data-title
   project   = local.zone-proj
 }
@@ -40,17 +41,21 @@ data "google_dns_managed_zone" "z" {
 locals {
   # Version of managed zone title that gives hint if no such zone found:
   zone-title = ( var.dns-zone-ref == "" ? ""
-    : [ for name in [ data.google_dns_managed_zone.z.name ] :
+    : [ for name in [ data.google_dns_managed_zone.z[0].name ] :
         try( 0 < length(name), false ) ? name
         : "DNS Zone ${local.zone-proj}/${local.dns-data-title} not found" ][0] )
-  zone-domain = ( var.dns-zone-ref == "" ? ""
-    : trimsuffix(".${data.google_dns_managed_zone.z.dns_name}", ".") )
+  zone-domain = ( var.dns-zone-ref == "" ? "/no-zone-ref"
+    : [ for dom in [ data.google_dns_managed_zone.z[0].dns_name ] :
+          try( 0 < length(dom), false )
+            ? trimsuffix( dom, "." )
+            : "/invalid-zone-ref" ][0] )
 
   # Map from value in var.hostnames to fully-qualified domain, skipping
   #     hostnames with "|" (used for creating DNS-authorized certs):
   fqdns = { for h in var.hostnames : h => (
-    1 < length(split(".",h)) ? h : "${h}${local.zone-domain}" )
-    if length(split("/",h)) < 2 }
+    1 == length(split(".",h))
+      ? "${h}.${local.zone-domain}" : h )
+    if length(split("|",h)) < 2 }
 }
 
 resource "google_certificate_manager_dns_authorization" "a" {
