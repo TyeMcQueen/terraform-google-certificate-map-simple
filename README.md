@@ -1,7 +1,7 @@
 # terraform-google-certificate-map-simple
 
-A Terraform module for using GCP Certificate Manager to create one or
-more GCP-managed SSL Certificates (especially DNS-authenticated ones)
+A Terraform module for using GCP Cloud Certificate Manager to create one
+or more GCP-managed SSL Certificates (especially DNS-authorized ones)
 and (optionally) place them all into a certificate map.
 
 ## Contents
@@ -22,13 +22,13 @@ that will use the certificates.
 
 ### Resolve Certificate Creation Problems Early
 
-Each certificate creation attempt will usually take 20 minutes or more so
-trouble shooting can drag on.  So it is good to be able to start this
-process early.
+Each certificate creation attempt will usually take about 20 minutes (or
+more) so trouble shooting can drag on.  So it is good to be able to start
+this process early.
 
 ### No Need To Expose Broken Load Balancer
 
-LB-authenticated certificates require you to expose a Load Balancer instance
+LB-authorized certificates require you to expose a Load Balancer instance
 and even have your desired host name configured to point to it before the
 certificate can be created.  Exposing your service like this before it is
 working and before it can have a valid certificate may not be ideal.
@@ -37,15 +37,15 @@ working and before it can have a valid certificate may not be ideal.
 
 The reduced requirements also mean that there is less that you have
 to trouble-shoot when a certificate fails to be issued (compared to
-LB-authenticated certificates).
+LB-authorized certificates).
 
 ### Better Reliability
 
-DNS-authenticated certificates rely on less infrastructure and you can
+DNS-authorized certificates rely on less infrastructure and you can
 safely tear down and/or recreate your load balancer and your host DNS
 entries and not impact the certificates.  It is too easy to accidentally
-cause an LB-authenticated certificate to be recreated, causing at least
-a 20-minute outage.
+cause an LB-authorized certificate to be recreated, causing a 20-minute
+outage (or longer).
 
 ### Better Security
 
@@ -55,13 +55,13 @@ via Certificate Manager, then any probe attempts that use HTTPS will be
 handed a certificate letting the hackers know what host name to use with
 that IP address.
 
-By using Certificate Manager certificate maps you can specify a specific
-certificate to provide for requests that are not using a known host name.
-So you can control the host name that the hackers discover.  You can use
-a "honeypot" host name that is not used for legitimate traffic and thus
-more easily be able to identify requests that you can just reject,
-simplifying keeping your endpoint secure and making it easy to remove a
-lot of noise from your logs.
+By using Cloud Certificate Manager certificate maps you can specify a
+specific certificate to provide for requests that are not using a known host
+name.  So you can control the host name that the hackers discover.  You can
+use a "honeypot" host name that is not used for legitimate traffic and thus
+more easily identify requests that you can just reject, simplifying keeping
+your endpoint secure and making it easy to remove a lot of noise from your
+logs.
 
 ## Basic Usage
 
@@ -107,7 +107,7 @@ containing a single certificate map resource otherwise:
 The following module usage does not specify `map-name` and so will only
 create the certificates and not a certificate map.
 
-    module "certs" {
+    module "my-certs" {
       source  = "github.com/TyeMcQueen/terraform-google-certificate-map-simple"
 
       dns-zone-ref      = "my-zone"
@@ -116,7 +116,7 @@ create the certificates and not a certificate map.
 
 ## Other Certificate Types
 
-Creating a certificate not using DNS authentication only requires a single
+Creating a certificate not using DNS authorization only requires a single
 `resource` block, so this module does not simplify that part of the process.
 
 But you can use such certificates in the certificate map that this module
@@ -131,7 +131,7 @@ the `.id` of the certificate.
       hostnames         = [
         "honeypot",
         join( "|", "*.my-domain.com",
-          google_certificate_manager_certificate.api-web-cert.id ),
+          google_certificate_manager_certificate.wild-cert.id ),
       ]
     }
 
@@ -158,17 +158,17 @@ information about the status of a certificate.
 
 ### Types Of Certificates
 
-This module does not support Certificates with `scope = "EDGE_CACHE"`.
-
-This module does not simplify the creation of a single DNS-authenticated
+This module does not simplify the creation of a single DNS-authorized
 certificate that covers multiple hostnames.  It also does not simplify
-creation of DNS-authenticated certificates where the DNS is not managed
+creation of DNS-authorized certificates where the DNS is not managed
 in GCP or is managed in a GCP project that your Terraform workspace does
 not have access to.
 
 But if you create such certificates, you can include them in the certificate
 map created by this module as outlined in [Other Certificate Types](
 #other-certificate-types).
+
+This module does not support Certificates with `scope = "EDGE_CACHE"`.
 
 It also does not support creating certificates in 2 (or more) different
 GCP-managed DNS Zones.  However, you can invoke the module once to simply

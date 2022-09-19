@@ -26,7 +26,7 @@ variable "dns-zone-ref" {
   description   = <<-EOD
     (Required) Either the name given to a GCP-Managed DNS Zone resource in
     this project or "$${project-id}/$${name}" for a DNS Zone in a different
-    project.  This is where records to meet DNS authentication challenges
+    project.  This is where records to meet DNS authorization challenges
     will be added.  The `.dns_name` of the zone will also be appended to
     any hostnames that contain no "." characters.
 
@@ -41,8 +41,8 @@ variable "map-name" {
   description   = <<-EOD
     An optional name for the Certificate Map to be created.  If left as ""
     then no certificate map is created.  Otherwise, a certificate map is
-    create holding all of the created certificates and where the certificate
-    for the first value in `hostnames` is marked as "PRIMARY".
+    create holding all of the created/referenced certificates and where the
+    certificate for the first value in `hostnames` is marked as "PRIMARY".
 
     Example: map-name = "my-api"
   EOD
@@ -111,7 +111,7 @@ variable "name-prefix" {
 
 variable "dns-ttl-secs" {
   description   = <<-EOD
-    Time-To-Live, in seconds, for created DNS records.
+    Time-To-Live, in seconds, for created DNS records (challenge data).
   EOD
   type          = number
   default       = 900

@@ -15,7 +15,7 @@ output "keys" {
 }
 
 output "dns-auths" {
-  description   = "A map of DNS authentications created"
+  description   = "A map of DNS authorizations created"
   value         = google_certificate_manager_dns_authorization.a
 }
 

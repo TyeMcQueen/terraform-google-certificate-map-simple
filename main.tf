@@ -46,9 +46,8 @@ locals {
   zone-domain = ( var.dns-zone-ref == "" ? ""
     : trimsuffix(".${data.google_dns_managed_zone.z.dns_name}", ".") )
 
-  # For var.hostnames = [ "api", "my-product.example.com" ],
-  #     local.fqdns["api"]                      = "api.my-team.com"
-  #     local.fqdns["my-product.my-team.com"]   = "my-product.my-team.com"
+  # Map from value in var.hostnames to fully-qualified domain, skipping
+  #     hostnames with "|" (used for creating DNS-authorized certs):
   fqdns = { for h in var.hostnames : h => (
     1 < length(split(".",h)) ? h : "${h}${local.zone-domain}" )
     if length(split("/",h)) < 2 }
