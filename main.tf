@@ -54,7 +54,8 @@ locals {
   #     hostnames with "|" (used for creating DNS-authorized certs):
   fqdns = { for h in var.hostnames : h => (
     1 == length(split(".",h))
-      ? "${h}.${local.zone-domain}" : h )
+      ? "${h}.${local.zone-domain}"
+      : "." == substr(h,-1,1) ? "${h}${local.zone-domain}" : h )
     if length(split("|",h)) < 2 }
 }
 
