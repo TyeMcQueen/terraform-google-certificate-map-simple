@@ -19,9 +19,14 @@ output "dns-auths" {
   value         = google_certificate_manager_dns_authorization.a
 }
 
-output "certs" {
-  description   = "A map of certificates created"
-  value         = google_certificate_manager_certificate.c
+output "dns-certs" {
+  description   = "A map of DNS-authorized certificates created"
+  value         = google_certificate_manager_certificate.dns
+}
+
+output "lb-certs" {
+  description   = "A map of LB-authorized certificates created"
+  value         = google_certificate_manager_certificate.lb
 }
 
 output "primary" {

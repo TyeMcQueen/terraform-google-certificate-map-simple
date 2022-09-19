@@ -57,6 +57,15 @@ locals {
       ? "${h}.${local.zone-domain}"
       : "." == substr(h,-1,1) ? "${h}${local.zone-domain}" : h )
     if length(split("|",h)) < 2 }
+
+  # Hosts for LB-authorized certs:
+  lbhosts = [ for h in var.hostnames :
+    split("|",h)[0] if "|LB" == substr(h,-3,3) ]
+  # Map from short hostname to full hostname for creating LB-authorized certs:
+  lbfqdns = { for h in local.lbhosts : h => (
+    1 == length(split(".",h))
+      ? "${h}.${local.zone-domain}"
+      : "." == substr(h,-1,1) ? "${h}${local.zone-domain}" : h ) }
 }
 
 resource "google_certificate_manager_dns_authorization" "a" {
@@ -83,7 +92,7 @@ resource "google_dns_record_set" "d" {
   rrdatas       = [ local.auth-rec[each.key].data ]
 }
 
-resource "google_certificate_manager_certificate" "c" {
+resource "google_certificate_manager_certificate" "dns" {
   for_each      = local.fqdns
   name          = lower(replace( "${var.name-prefix}${each.key}", ".", "-" ))
   description   = var.description
@@ -91,6 +100,16 @@ resource "google_certificate_manager_certificate" "c" {
   managed {
     domains             = [ local.dns-auth[each.key].domain ]
     dns_authorizations  = [ local.dns-auth[each.key].id ]
+  }
+}
+
+resource "google_certificate_manager_certificate" "lb" {
+  for_each      = local.lbfqdns
+  name          = lower(replace( "${var.name-prefix}${each.key}", ".", "-" ))
+  description   = var.description
+  labels        = var.labels
+  managed {
+    domains             = [ each.value ]
   }
 }
 
@@ -104,8 +123,10 @@ resource "google_certificate_manager_certificate_map" "m" {
 
 locals {
   keys = [ for h in var.hostnames : split("|",h)[0] ]
-  new-certs = google_certificate_manager_certificate.c
+  new-certs = google_certificate_manager_certificate.dns
+  lb-certs = google_certificate_manager_certificate.lb
   certs = { for h in var.hostnames : split("|",h)[0] =>
+    "|LB" == substr(h,-3,3) ? local.lb-certs[split("|",h)[0]] :
     1 < length(split("|",h)) ? split("|",h)[1] : local.new-certs[h].id }
 
   primary-name = split( "|", var.hostnames[0] )[0]
