@@ -4,6 +4,7 @@ A Terraform module for using GCP Cloud Certificate Manager to create one
 or more GCP-managed SSL Certificates (especially DNS-authorized ones)
 and (optionally) place them all into a certificate map.
 
+
 ## Contents
 
 * [Benefits](#benefits)
@@ -12,6 +13,7 @@ and (optionally) place them all into a certificate map.
 * [Other Certificate Types](#other-certificate-types)
 * [More Options](#more-options)
 * [Limitations](#limitations)
+
 
 ## Benefits
 
@@ -51,8 +53,8 @@ outage (or longer).
 
 Any IP address exposed on the internet will get a considerable stream of
 probe attempts from hackers and "script kiddies".  If you use certs not
-via Certificate Manager, then any probe attempts that use HTTPS will be
-handed a certificate letting the hackers know what host name to use with
+via Cloud Certificate Manager, then any probe attempts that use HTTPS will
+be handed a certificate letting the hackers know what host name to use with
 that IP address.
 
 By using Cloud Certificate Manager certificate maps you can specify a
@@ -62,6 +64,11 @@ use a "honeypot" host name that is not used for legitimate traffic and thus
 more easily identify requests that you can just reject, simplifying keeping
 your endpoint secure and making it easy to remove a lot of noise from your
 logs.
+
+The other benefits require the use of DNS-authorized certificates.  You
+get this benefit by using a certificate map, even if you use LB-authorized
+certificates in it.
+
 
 ## Basic Usage
 
@@ -96,7 +103,7 @@ You can use the created certificate map via the output variable `cert-map`
 which will be an empty list if `map-name` was left empty or a list
 containing a single certificate map resource otherwise:
 
-    resource "google_compute_target_https_proxy" "https" {
+    resource "google_compute_target_https_proxy" "my-https" {
       name              = ...
       url_map           = ...
       certificate_map   = module.my-cert-map.cert-map[0].id
@@ -108,6 +115,7 @@ is automatically appended to hostnames that either do not contain any "."
 characters or that end in a "." character.  So, with the above domain
 definition, you could use hostnames like "api", "web.stg.", or
 "web.my-domain.com" and get DNS-authorized certs.
+
 
 ## Certificates But No Map
 
@@ -121,12 +129,33 @@ create the certificates and not a certificate map.
       hostnames         = [ "honeypot", "api", "web" ]
     }
 
+
+## Without a GCP-Managed DNS Zone
+
+If your hostname(s) will not reside in a GCP-Managed DNS Zone that
+your Terraform workspace can make changes to, then you may want to
+use LB-authorized certificates in your certificate map.
+
+    module "my-cert-map" {
+      source  = "github.com/TyeMcQueen/terraform-google-certificate-map-simple"
+
+      map-name  = "my-map"
+      hostnames = [
+        "honeypot.my-team.example.com|LB",
+        "api.my-team.example.com|LB",
+      ]
+    }
+
+Note that we don't specify `dns-zone-ref`, we append "|LB" to the end
+of each hostname, and each hostname is fully qualified.
+
+
 ## Other Certificate Types
 
 Creating a certificate not using DNS authorization only requires a single
-`resource` block, so this module does not simplify all of those cases.  But
-we do simplify the creation of simple LB-authorized certificates by just
-appending the literal string "|LB" to the end of a hostname.
+`resource` block, so this module does not simplify all of those cases.  We do
+simplify the creation of simple LB-authorized certificates by just appending
+the literal string "|LB" to the end of a hostname, as noted above.
 
 And you can use other certificates that you create elsewhere in the
 certificate map that this module creates.  Simply append to the hostname
@@ -143,6 +172,11 @@ certificate map that this module creates.  Simply append to the hostname
           google_certificate_manager_certificate.wild-cert.id ),
       ]
     }
+
+This example specifies `dns-zone-ref` so that the short hostname "honeypot"
+can be used.  But no DNS-authorized certificates are created so Terraform
+only needs read-only access to that zone.
+
 
 ## More Options
 
@@ -162,6 +196,7 @@ created certificate map with a load balancer.
 You can use `module.NAME.certs[HOSTNAME]` to access items in the
 `.provisioning_issue` and `.authorization_attempt_info` records to get
 information about the status of a certificate.
+
 
 ## Limitations
 
@@ -204,7 +239,7 @@ provider, but Terraform does not allow such flexibility with provider
 usage in modules at this time.
 
 You must use at least v4.30 of the `google-beta` provider as earlier
-versions did not support Certificate Manager.
+versions did not support Cloud Certificate Manager.
 
 You must use at least Terraform v0.13 as the module uses some features
 that were not available in earlier versions.

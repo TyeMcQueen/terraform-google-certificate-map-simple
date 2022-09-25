@@ -4,7 +4,7 @@ variable "hostnames" {
     Required list of hostnames that (by default) you want GCP-managed
     certificates created for using DNS authorization.  If a hostname
     contains no "." characters or ends with a "." character, then the
-    zone domain name is appended.
+    zone domain name is appended (requires `dns-zone-ref`).
 
     The first host name will be the "PRIMARY" certificate (handed out
     for unmatched hostnames) if a certificate map is created.
@@ -36,11 +36,12 @@ variable "hostnames" {
 
 variable "dns-zone-ref" {
   description   = <<-EOD
-    (Required) Either the name given to a GCP-Managed DNS Zone resource in
-    this project or "$${project-id}/$${name}" for a DNS Zone in a different
-    project.  This is where records to meet DNS authorization challenges
-    will be added.  The `.dns_name` of the zone will also be appended to
-    any hostnames that contain no "." characters or that end in ".".
+    Either the name given to a GCP-Managed DNS Zone resource in this project,
+    "$${project-id}/$${name}" for a DNS Zone in a different project, or ""
+    to not use such a Zone.  This is where records to meet DNS authorization
+    challenges will be added.  The `.dns_name` of the zone will also be
+    appended to any hostnames that contain no "." characters or that end in
+    ".".
 
     If all of your hostnames contain "|" (followed by "LB" or a certificate
     `.id`), then you can set `dns-zone-ref = ""` which would require that
@@ -52,13 +53,14 @@ variable "dns-zone-ref" {
       dns-zone-ref = google_dns_managed_zone.my-zone.name
   EOD
   type          = string
+  default       = ""
 }
 
 variable "map-name" {
   description   = <<-EOD
     An optional name for the Certificate Map to be created.  If left as ""
     then no certificate map is created.  Otherwise, a certificate map is
-    create holding all of the created/referenced certificates and where the
+    created holding all of the created/referenced certificates and where the
     certificate for the first value in `hostnames` is marked as "PRIMARY".
 
     Example: map-name = "my-api"
@@ -115,12 +117,11 @@ variable "project" {
 variable "name-prefix" {
   description   = <<-EOD
     An optional prefix string to prepend to GCP resource `name`s for both
-    DNS Authorization resources and Certificate resources.  May be needed
-    if you are using multiple DNS Zones in one project and so might have
-    a Certificate for "api.widget.example.com" and another for
-    "api.gadget.example.com" but can't use the `name` of "api" for both.
+    DNS Authorization resources and Certificate resources.  Can be useful
+    when migrating to a new configuration that uses some of the same
+    hostnames as the configuration you are migrating away from.
 
-    Example: name-prefix = "core-"
+    Example: name-prefix = "v2-"
   EOD
   type          = string
   default       = ""
@@ -133,3 +134,4 @@ variable "dns-ttl-secs" {
   type          = number
   default       = 900
 }
+
