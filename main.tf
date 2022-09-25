@@ -71,7 +71,7 @@ locals {
 resource "google_certificate_manager_dns_authorization" "a" {
   for_each      = local.fqdns
   project       = local.project
-  name          = lower(replace( "${var.name-prefix}${each.key}", ".", "-" ))
+  name          = lower(replace( "${var.name-prefix}${each.value}", ".", "-" ))
   description   = var.description
   domain        = each.value
   labels        = var.labels
@@ -94,7 +94,7 @@ resource "google_dns_record_set" "d" {
 
 resource "google_certificate_manager_certificate" "dns" {
   for_each      = local.fqdns
-  name          = lower(replace( "${var.name-prefix}${each.key}", ".", "-" ))
+  name          = lower(replace( "${var.name-prefix}${each.value}", ".", "-" ))
   description   = var.description
   labels        = var.labels
   managed {
@@ -105,7 +105,7 @@ resource "google_certificate_manager_certificate" "dns" {
 
 resource "google_certificate_manager_certificate" "lb" {
   for_each      = local.lbfqdns
-  name          = lower(replace( "${var.name-prefix}${each.key}", ".", "-" ))
+  name          = lower(replace( "${var.name-prefix}${each.value}", ".", "-" ))
   description   = var.description
   labels        = var.labels
   managed {
