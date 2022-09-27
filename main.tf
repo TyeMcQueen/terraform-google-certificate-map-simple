@@ -19,7 +19,20 @@ locals {
     for p in [ data.google_client_config.default.project ] :
     try( "" != p, false ) ? p
     : "google_client_config.default does not define '.project'" ][0]
+}
 
+resource "google_project_service" "required" {
+  for_each  = toset([
+    "certificatemanager.googleapis.com",
+  ])
+  project   = local.project
+  service   = each.value
+
+  disable_on_destroy            = false
+  disable_dependent_services    = false
+}
+
+locals {
   # Parse var.dns-zone-ref to get a project ID and a managed zone title:
   dns-parts = split( "/", var.dns-zone-ref )
   zone-proj = ( 2 == length(local.dns-parts)
