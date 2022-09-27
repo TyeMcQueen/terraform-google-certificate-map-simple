@@ -13,6 +13,7 @@ and (optionally) place them all into a certificate map.
 * [Other Certificate Types](#other-certificate-types)
 * [More Options](#more-options)
 * [Limitations](#limitations)
+* [A warning about deletions](#deletions)
 
 
 ## Benefits
@@ -208,6 +209,81 @@ information about the status of a certificate.
 
 
 ## Limitations
+
+### Deletions
+
+Great care and significant testing has gone in to ensuring that changes to
+the inputs used in an invocation of this module can be successfully applied
+by Terraform (Terraform was unable to deal with the dependency graph created
+by many incarnations of this module).
+
+But that does not mean that such changes would not (temporarily) impact the
+function of your ingress.
+
+You must be very cautious about applying any changes that involve deleting
+any resources.  Even if Terraform managed to create the replacement before
+deleting the prior version (which is itself unlikely and is sometimes not
+even supported by GCP), a newly created certificate is not immediately
+active.
+
+To make changes without disruption, first add a second certificate map.
+For example, consider the below simple module invocation.
+
+    module "my-cert-map" {
+      source        = (
+        "github.com/TyeMcQueen/terraform-google-certificate-map-simple" )
+      dns-zone-ref  = "my-zone"
+      map-name1     = "my-map"
+      hostnames1    = [ "honeypot|LB", "api|LB" ]
+    }
+
+If you wanted to move from LB-authorized certs to DNS-authorized certs
+without disruption to your service, then you would first provision a 2nd
+cert map as shown below.  Make a copy of your existing `map-name1` and
+`hostnames1` values, change the "1"s to "2"s in the copied input variable
+names, modify the map name (add "-v2" or similar), and make your desired
+changes to the `hostnames2` values.
+
+    module "my-cert-map" {
+      # ...
+      map-name1     = "my-map"
+      hostnames1    = [ "honeypot|LB", "api|LB" ]
+      map-name2     = "my-map2"
+      hostnames2    = [ "honeypot", "api" ]
+    }
+
+Make sure to leave the original `map-name1` and `hostnames1` values
+unchanged.  Apply the above changes and then wait for the new certificates
+to become active.  Then you can switch to the new certificate map.
+
+    resource "google_compute_target_https_proxy" "my-https" {
+      # ...
+      # Previous configuration:
+      # certificate_map = module.my-cert-map.map1[0].id
+      certificate_map   = module.my-cert-map.map2[0].id
+    }
+
+Apply those changes while leaving the "1" settings in place.  This will
+allow you to quickly roll back if you find a problem with your changes.
+
+Finally, you can delete the "1" settings and just leave the "2" settings,
+which will delete any no-longer-used certificates, the old map, and related
+infrastructure.
+
+    module "my-cert-map" {
+      # ...
+      map-name2     = "my-map2"
+      hostnames2    = [ "honeypot", "api" ]
+    }
+
+If you later need to make another set of changes, then do the same steps
+but changing the "2"s back to "1"s this time.  If the "2"s bother you,
+be warned that you can't just change them back to "1"s, as that would
+cause disruption (required by the restrictions of how Terraform tracks
+dependencies in such a complex case as this).  Of course, you could repeat
+the migration process: switch back to the original map name while copying
+the updated `hostnames2` over `hostnames1`, apply those changes, move to the
+3rd certificate map, apply again, and finally delete the "2" versions.
 
 ### Types Of Certificates
 
