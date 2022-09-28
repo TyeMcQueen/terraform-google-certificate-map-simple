@@ -78,11 +78,11 @@ all of the certificates and where the cert for "honeypot" is given out for
 unrecognized host names.
 
     module "my-cert-map" {
-      source  = "github.com/TyeMcQueen/terraform-google-certificate-map-simple"
-
-      dns-zone-ref      = "my-zone"
-      map-name          = "my-map"
-      hostnames         = [ "honeypot", "api", "web" ]
+      source        = (
+        "github.com/TyeMcQueen/terraform-google-certificate-map-simple" )
+      dns-zone-ref  = "my-zone"
+      map-name      = "my-map"
+      hostnames     = [ "honeypot", "api", "web" ]
     }
 
 Of course, you probably want to use a less obvious name for your honeypot.
@@ -104,8 +104,7 @@ which will be an empty list if `map-name` was left empty or a list
 containing a single certificate map resource otherwise:
 
     resource "google_compute_target_https_proxy" "my-https" {
-      name              = ...
-      url_map           = ...
+      # ...
       certificate_map   = module.my-cert-map.cert-map[0].id
     }
 
@@ -123,10 +122,10 @@ The following module usage does not specify `map-name` and so will only
 create the certificates and not a certificate map.
 
     module "my-certs" {
-      source  = "github.com/TyeMcQueen/terraform-google-certificate-map-simple"
-
-      dns-zone-ref      = "my-zone"
-      hostnames         = [ "honeypot", "api", "web" ]
+      source        = (
+        "github.com/TyeMcQueen/terraform-google-certificate-map-simple" )
+      dns-zone-ref  = "my-zone"
+      hostnames     = [ "honeypot", "api", "web" ]
     }
 
 
@@ -137,10 +136,10 @@ your Terraform workspace can make changes to, then you may want to
 use LB-authorized certificates in your certificate map.
 
     module "my-cert-map" {
-      source  = "github.com/TyeMcQueen/terraform-google-certificate-map-simple"
-
-      map-name  = "my-map"
-      hostnames = [
+      source        = (
+        "github.com/TyeMcQueen/terraform-google-certificate-map-simple" )
+      map-name      = "my-map"
+      hostnames     = [
         "honeypot.my-team.example.com|LB",
         "api.my-team.example.com|LB",
       ]
@@ -162,11 +161,11 @@ certificate map that this module creates.  Simply append to the hostname
 (in `hostnames`) a "|" followed by the `.id` of the certificate.
 
     module "my-cert-map" {
-      source  = "github.com/TyeMcQueen/terraform-google-certificate-map-simple"
-
-      dns-zone-ref      = "my-zone"
-      map-name          = "my-map"
-      hostnames         = [
+      source        = (
+        "github.com/TyeMcQueen/terraform-google-certificate-map-simple" )
+      dns-zone-ref  = "my-zone"
+      map-name      = "my-map"
+      hostnames     = [
         "honeypot|LB",
         join( "|", "*.my-domain.com",
           google_certificate_manager_certificate.wild-cert.id ),
