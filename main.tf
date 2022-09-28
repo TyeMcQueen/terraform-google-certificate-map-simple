@@ -79,12 +79,21 @@ locals {
     1 == length(split(".",h))
       ? "${h}.${local.zone-domain}"
       : "." == substr(h,-1,1) ? "${h}${local.zone-domain}" : h ) }
+
+  # Just the list of fully qualified hostnames (no suffixes) for output
+  # as keys for maps of resource records:
+  fqs = [ for h in var.hostnames : split("|",h)[0] ]
+
+  # Map from fq to usable resource name version of it:
+  toname = { for fq in local.fqs : fq => (
+    lower(replace( replace(fq,"*","-"), ".", "-" )) ) }
+
 }
 
 resource "google_certificate_manager_dns_authorization" "a" {
   for_each      = local.fqdns
   project       = local.project
-  name          = lower(replace( "${var.name-prefix}${each.value}", ".", "-" ))
+  name          = "${var.name-prefix}${local.toname[each.value]}"
   description   = var.description
   domain        = each.value
   labels        = var.labels
@@ -107,7 +116,7 @@ resource "google_dns_record_set" "d" {
 
 resource "google_certificate_manager_certificate" "dns" {
   for_each      = local.fqdns
-  name          = lower(replace( "${var.name-prefix}${each.value}", ".", "-" ))
+  name          = "${var.name-prefix}${local.toname[each.value]}"
   description   = var.description
   labels        = var.labels
   managed {
@@ -118,7 +127,7 @@ resource "google_certificate_manager_certificate" "dns" {
 
 resource "google_certificate_manager_certificate" "lb" {
   for_each      = local.lbfqdns
-  name          = lower(replace( "${var.name-prefix}${each.value}", ".", "-" ))
+  name          = "${var.name-prefix}${local.toname[each.value]}"
   description   = var.description
   labels        = var.labels
   managed {
@@ -135,7 +144,6 @@ resource "google_certificate_manager_certificate_map" "m" {
 }
 
 locals {
-  keys = [ for h in var.hostnames : split("|",h)[0] ]
   new-certs = google_certificate_manager_certificate.dns
   lb-certs = google_certificate_manager_certificate.lb
   certs = { for h in var.hostnames : split("|",h)[0] =>
@@ -152,7 +160,7 @@ locals {
 resource "google_certificate_manager_certificate_map_entry" "primary" {
   for_each      = local.primary
   map           = google_certificate_manager_certificate_map.m[0].name
-  name          = lower(replace( each.key, ".", "-" ))
+  name          = local.toname[each.key]
   description   = var.description
   certificates  = [ each.value ]
   matcher       = "PRIMARY"
@@ -162,7 +170,7 @@ resource "google_certificate_manager_certificate_map_entry" "primary" {
 resource "google_certificate_manager_certificate_map_entry" "others" {
   for_each      = local.others
   map           = google_certificate_manager_certificate_map.m[0].name
-  name          = lower(replace( each.key, ".", "-" ))
+  name          = local.toname[each.key]
   description   = var.description
   certificates  = [ each.value ]
   hostname      = can(local.fqdns[each.key]) ? local.fqdns[each.key] : each.key
