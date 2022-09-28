@@ -63,35 +63,49 @@ locals {
             ? trimsuffix( dom, "." )
             : "/invalid-zone-ref" ][0] )
 
-  # Map from value in var.hostnames to fully-qualified domain, skipping
-  #     hostnames with "|" (used for creating DNS-authorized certs):
-  fqdns = { for h in var.hostnames : h => (
-    1 == length(split(".",h))
-      ? "${h}.${local.zone-domain}"
-      : "." == substr(h,-1,1) ? "${h}${local.zone-domain}" : h )
-    if length(split("|",h)) < 2 }
+  hostnames = distinct(flatten([ var.hostnames1, var.hostnames2 ]))
 
-  # Hosts for LB-authorized certs:
-  lbhosts = [ for h in var.hostnames :
-    split("|",h)[0] if "|LB" == substr(h,-3,3) ]
-  # Map from short hostname to full hostname for creating LB-authorized certs:
-  lbfqdns = { for h in local.lbhosts : h => (
-    1 == length(split(".",h))
-      ? "${h}.${local.zone-domain}"
-      : "." == substr(h,-1,1) ? "${h}${local.zone-domain}" : h ) }
+  # Map from input hostname (with optional suffix) to just the suffix:
+  tosuff = { for e in local.hostnames :
+    e => trimprefix( e, split("|",e)[0] ) }
+
+  # Map from input hostname (with optional suffix) to the suffix type:
+  totype = { for e in local.hostnames : e => (
+    local.tosuff[e] == ""    ? "DNS" :
+    local.tosuff[e] == "|LB" ? "LB" : "EXT" ) }
+
+  # Map from input hostname (with optional suffix) to fully qualified hostname:
+  tofq = { for e in local.hostnames : e => [ for h in [ split("|",e)[0] ] :
+    1 == length(split(".",h)) ? "${h}.${local.zone-domain}" :
+    "." == substr(h,-1,1) ? "${h}${local.zone-domain}" : h
+  ][0] }
+
+  # Map from input hostname (with optional suffix) to which cert map it is
+  # included in ("3" means "both"):
+  tonum = { for e in local.hostnames : e => (
+    ! contains( var.hostnames1, e ) ? "2" :
+    ! contains( var.hostnames2, e ) ? "1" : "3" ) }
 
   # Just the list of fully qualified hostnames (no suffixes) for output
   # as keys for maps of resource records:
-  fqs = [ for h in var.hostnames : split("|",h)[0] ]
+  fqs = distinct([ for e, fq in local.tofq : fq ])
 
   # Map from fq to usable resource name version of it:
   toname = { for fq in local.fqs : fq => (
     lower(replace( replace(fq,"*","-"), ".", "-" )) ) }
 
+  # Fully qualified hostnames for DNS-authorized certs:
+  dnsfq = [ for e, fq in local.tofq : fq if local.totype[e] == "DNS" ]
+
+  # Fully qualified hostnames for LB-authorized certs:
+  lbfq  = [ for e, fq in local.tofq : fq if local.totype[e] == "LB" ]
+
+  # Fully qualified hostnames for external certs:
+  extfq = [ for e, fq in local.tofq : fq if local.totype[e] == "EXT" ]
 }
 
 resource "google_certificate_manager_dns_authorization" "a" {
-  for_each      = local.fqdns
+  for_each      = toset(local.dnsfq)
   project       = local.project
   name          = "${var.name-prefix}${local.toname[each.value]}"
   description   = var.description
@@ -99,80 +113,218 @@ resource "google_certificate_manager_dns_authorization" "a" {
   labels        = var.labels
 }
 
-locals {
-  dns-auth  = google_certificate_manager_dns_authorization.a
-  auth-rec  = { for h, a in local.dns-auth : h => a.dns_resource_record.0 }
-}
-
 resource "google_dns_record_set" "d" {
-  for_each      = local.fqdns
+  for_each      = toset(local.dnsfq)
   project       = local.zone-proj
   managed_zone  = local.zone-title
-  name          = local.auth-rec[each.key].name
-  type          = local.auth-rec[each.key].type
+  name          = ( google_certificate_manager_dns_authorization.a[
+    each.value].dns_resource_record.0.name )
+  type          = ( google_certificate_manager_dns_authorization.a[
+    each.value].dns_resource_record.0.type )
   ttl           = var.dns-ttl-secs
-  rrdatas       = [ local.auth-rec[each.key].data ]
+  rrdatas       = [ google_certificate_manager_dns_authorization.a[
+    each.value].dns_resource_record.0.data ]
 }
 
 resource "google_certificate_manager_certificate" "dns" {
-  for_each      = local.fqdns
+  for_each      = toset(local.dnsfq)
   name          = "${var.name-prefix}${local.toname[each.value]}"
   description   = var.description
   labels        = var.labels
   managed {
-    domains             = [ local.dns-auth[each.key].domain ]
-    dns_authorizations  = [ local.dns-auth[each.key].id ]
+    domains             = [
+      google_certificate_manager_dns_authorization.a[each.value].domain ]
+    dns_authorizations  = [
+      google_certificate_manager_dns_authorization.a[each.value].id ]
   }
 }
 
 resource "google_certificate_manager_certificate" "lb" {
-  for_each      = local.lbfqdns
-  name          = "${var.name-prefix}${local.toname[each.value]}"
+  for_each      = toset(local.lbfq)
+  name          = "${var.name-prefix}lb-${local.toname[each.value]}"
   description   = var.description
   labels        = var.labels
   managed {
-    domains             = [ each.value ]
+    domains     = [ each.value ]
   }
 }
 
-resource "google_certificate_manager_certificate_map" "m" {
-  count         = var.map-name == "" ? 0 : 1
-  name          = var.map-name
+resource "google_certificate_manager_certificate_map" "m1" {
+  count         = var.map-name1 == "" ? 0 : 1
+  name          = var.map-name1
+  description   = var.description
+  project       = local.project
+  labels        = merge( var.labels, var.map-labels )
+}
+
+resource "google_certificate_manager_certificate_map" "m2" {
+  count         = var.map-name2 == "" ? 0 : 1
+  name          = var.map-name2
   description   = var.description
   project       = local.project
   labels        = merge( var.labels, var.map-labels )
 }
 
 locals {
-  new-certs = google_certificate_manager_certificate.dns
-  lb-certs = google_certificate_manager_certificate.lb
-  certs = { for h in var.hostnames : split("|",h)[0] =>
-    "|LB" == substr(h,-3,3) ? local.lb-certs[split("|",h)[0]] :
-    1 < length(split("|",h)) ? split("|",h)[1] : local.new-certs[h].id }
+  prim1e        = var.map-name1 == "" ? "" : var.hostnames1[0]
+  prim1         = var.map-name1 == "" ? "" : local.tofq[ local.prim1e ]
+  prim1-suff    = var.map-name1 == "" ? "" : local.tosuff[ local.prim1e ]
+  prim1-type    = var.map-name1 == "" ? "" : local.totype[ local.prim1e ]
 
-  primary-name = split( "|", var.hostnames[0] )[0]
-  primary = ( var.map-name == "" ? {}
-    : { (local.primary-name) = local.certs[local.primary-name] } )
-  others = ( var.map-name == "" || length(var.hostnames) < 2 ? {}
-    : { for h, id in local.certs : h => id if h != local.primary-name } )
+  prim2e        = var.map-name2 == "" ? "" : var.hostnames2[0]
+  prim2         = var.map-name2 == "" ? "" : local.tofq[ local.prim2e ]
+  prim2-suff    = var.map-name2 == "" ? "" : local.tosuff[ local.prim2e ]
+  prim2-type    = var.map-name2 == "" ? "" : local.totype[ local.prim2e ]
+
+  dns1p = "DNS" != local.prim1-type ? [] : [ local.prim1 ]
+  lb1p  = "LB"  != local.prim1-type ? [] : [ local.prim1 ]
+  ext1p = "EXT" != local.prim1-type ? {} : {
+    local.prim1 = trimprefix( "|", local.prim1-suff ) }
+
+  dns2p = "DNS" != local.prim2-type ? [] : [ local.prim2 ]
+  lb2p  = "LB"  != local.prim2-type ? [] : [ local.prim2 ]
+  ext2p = "EXT" != local.prim2-type ? {} : {
+    local.prim2 = trimprefix( "|", local.prim2-suff ) }
+
+  dns1ents  = var.map-name1 == "" ? [] : [ for e, fq in local.tofq : fq
+    if "2" != local.tonum[e] && fq != local.prim1 && local.totype[e] == "DNS" ]
+  lb1ents   = var.map-name1 == "" ? [] : [ for e, fq in local.tofq : fq
+    if "2" != local.tonum[e] && fq != local.prim1 && local.totype[e] == "LB" ]
+  ext1ents  = var.map-name1 == "" ? [] : [ for e, fq in local.tofq : fq
+    if "2" != local.tonum[e] && fq != local.prim1 && local.totype[e] == "EXT" ]
+
+  dns2ents  = var.map-name2 == "" ? [] : [ for e, fq in local.tofq : fq
+    if "1" != local.tonum[e] && fq != local.prim2 && local.totype[e] == "DNS" ]
+  lb2ents   = var.map-name2 == "" ? [] : [ for e, fq in local.tofq : fq
+    if "1" != local.tonum[e] && fq != local.prim2 && local.totype[e] == "LB" ]
+  ext2ents  = var.map-name2 == "" ? [] : [ for e, fq in local.tofq : fq
+    if "1" != local.tonum[e] && fq != local.prim2 && local.totype[e] == "EXT" ]
 }
 
-resource "google_certificate_manager_certificate_map_entry" "primary" {
-  for_each      = local.primary
-  map           = google_certificate_manager_certificate_map.m[0].name
+resource "google_certificate_manager_certificate_map_entry" "dns1" {
+  for_each      = toset(local.dns1ents)
+  map           = google_certificate_manager_certificate_map.m1[0].name
+  name          = local.toname[each.value]
+  description   = var.description
+  labels        = var.labels
+  certificates  = [
+    google_certificate_manager_certificate.dns[each.value].id ]
+  hostname      = each.value
+}
+
+resource "google_certificate_manager_certificate_map_entry" "dns2" {
+  for_each      = toset(local.dns2ents)
+  map           = google_certificate_manager_certificate_map.m2[0].name
+  name          = local.toname[each.value]
+  description   = var.description
+  labels        = var.labels
+  certificates  = [
+    google_certificate_manager_certificate.dns[each.value].id ]
+  hostname      = each.value
+}
+
+resource "google_certificate_manager_certificate_map_entry" "lb1" {
+  for_each      = toset(local.lb1ents)
+  map           = google_certificate_manager_certificate_map.m1[0].name
+  name          = local.toname[each.value]
+  description   = var.description
+  labels        = var.labels
+  certificates  = [
+    google_certificate_manager_certificate.lb[each.value].id ]
+  hostname      = each.value
+}
+
+resource "google_certificate_manager_certificate_map_entry" "lb2" {
+  for_each      = toset(local.lb2ents)
+  map           = google_certificate_manager_certificate_map.m2[0].name
+  name          = local.toname[each.value]
+  description   = var.description
+  labels        = var.labels
+  certificates  = [
+    google_certificate_manager_certificate.lb[each.value].id ]
+  hostname      = each.value
+}
+
+resource "google_certificate_manager_certificate_map_entry" "ext1" {
+  for_each      = toset(local.ext1ents)
+  map           = google_certificate_manager_certificate_map.m1[0].name
   name          = local.toname[each.key]
   description   = var.description
+  labels        = var.labels
+  certificates  = [ each.value ]
+  hostname      = each.key
+}
+
+resource "google_certificate_manager_certificate_map_entry" "ext2" {
+  for_each      = local.ext2ents
+  map           = google_certificate_manager_certificate_map.m2[0].name
+  name          = local.toname[each.key]
+  description   = var.description
+  labels        = var.labels
+  certificates  = [ each.value ]
+  hostname      = each.key
+}
+
+resource "google_certificate_manager_certificate_map_entry" "dns1p" {
+  for_each      = toset(local.dns1p)
+  map           = google_certificate_manager_certificate_map.m1[0].name
+  name          = local.toname[each.value]
+  description   = var.description
+  labels        = var.labels
+  certificates  = [
+    google_certificate_manager_certificate.dns[each.value].id ]
+  matcher       = "PRIMARY"
+}
+
+resource "google_certificate_manager_certificate_map_entry" "dns2p" {
+  for_each      = toset(local.dns2p)
+  map           = google_certificate_manager_certificate_map.m2[0].name
+  name          = local.toname[each.value]
+  description   = var.description
+  labels        = var.labels
+  certificates  = [
+    google_certificate_manager_certificate.dns[each.value].id ]
+  matcher       = "PRIMARY"
+}
+
+resource "google_certificate_manager_certificate_map_entry" "lb1p" {
+  for_each      = toset(local.lb1p)
+  map           = google_certificate_manager_certificate_map.m1[0].name
+  name          = local.toname[each.value]
+  description   = var.description
+  labels        = var.labels
+  certificates  = [
+    google_certificate_manager_certificate.lb[each.value].id ]
+  matcher       = "PRIMARY"
+}
+
+resource "google_certificate_manager_certificate_map_entry" "lb2p" {
+  for_each      = toset(local.lb2p)
+  map           = google_certificate_manager_certificate_map.m2[0].name
+  name          = local.toname[each.value]
+  description   = var.description
+  labels        = var.labels
+  certificates  = [
+    google_certificate_manager_certificate.lb[each.value].id ]
+  matcher       = "PRIMARY"
+}
+
+resource "google_certificate_manager_certificate_map_entry" "ext1p" {
+  for_each      = local.ext1p
+  map           = google_certificate_manager_certificate_map.m1[0].name
+  name          = local.toname[each.key]
+  description   = var.description
+  labels        = var.labels
   certificates  = [ each.value ]
   matcher       = "PRIMARY"
-  labels        = var.labels
 }
 
-resource "google_certificate_manager_certificate_map_entry" "others" {
-  for_each      = local.others
-  map           = google_certificate_manager_certificate_map.m[0].name
+resource "google_certificate_manager_certificate_map_entry" "ext2p" {
+  for_each      = local.ext2p
+  map           = google_certificate_manager_certificate_map.m2[0].name
   name          = local.toname[each.key]
   description   = var.description
-  certificates  = [ each.value ]
-  hostname      = can(local.fqdns[each.key]) ? local.fqdns[each.key] : each.key
   labels        = var.labels
+  certificates  = [ each.value ]
+  matcher       = "PRIMARY"
 }
