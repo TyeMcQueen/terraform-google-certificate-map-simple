@@ -81,8 +81,8 @@ unrecognized host names.
       source        = (
         "github.com/TyeMcQueen/terraform-google-certificate-map-simple" )
       dns-zone-ref  = "my-zone"
-      map-name      = "my-map"
-      hostnames     = [ "honeypot", "api", "web" ]
+      map-name1     = "my-map"
+      hostnames1    = [ "honeypot", "api", "web" ]
     }
 
 Of course, you probably want to use a less obvious name for your honeypot.
@@ -99,13 +99,13 @@ for example:
       dns_name  = "my-domain.com."
     }
 
-You can use the created certificate map via the output variable `cert-map`
-which will be an empty list if `map-name` was left empty or a list
-containing a single certificate map resource otherwise:
+You can use the created certificate map via the output variable `map1`
+which will be a 0- or 1-entry list containing the resource record of the
+created certificate map.
 
     resource "google_compute_target_https_proxy" "my-https" {
       # ...
-      certificate_map   = module.my-cert-map.cert-map[0].id
+      certificate_map   = module.my-cert-map.map1[0].id
     }
 
 For DNS-authorized certs created by this module, the hostname must be a
@@ -118,14 +118,14 @@ definition, you could use hostnames like "api", "web.stg.", or
 
 ## Certificates But No Map
 
-The following module usage does not specify `map-name` and so will only
-create the certificates and not a certificate map.
+The following module invocation does not specify any map names and so
+will only create the certificates and not any certificate maps.
 
     module "my-certs" {
       source        = (
         "github.com/TyeMcQueen/terraform-google-certificate-map-simple" )
       dns-zone-ref  = "my-zone"
-      hostnames     = [ "honeypot", "api", "web" ]
+      hostnames1    = [ "honeypot", "api", "web" ]
     }
 
 
@@ -138,8 +138,8 @@ use LB-authorized certificates in your certificate map.
     module "my-cert-map" {
       source        = (
         "github.com/TyeMcQueen/terraform-google-certificate-map-simple" )
-      map-name      = "my-map"
-      hostnames     = [
+      map-name1     = "my-map"
+      hostnames1    = [
         "honeypot.my-team.example.com|LB",
         "api.my-team.example.com|LB",
       ]
@@ -156,16 +156,16 @@ Creating a certificate not using DNS authorization only requires a single
 simplify the creation of simple LB-authorized certificates by just appending
 the literal string "|LB" to the end of a hostname, as noted above.
 
-And you can use other certificates that you create elsewhere in the
-certificate map that this module creates.  Simply append to the hostname
-(in `hostnames`) a "|" followed by the `.id` of the certificate.
+And you can use certificates that you create elsewhere in the certificate
+map that this module creates.  Simply append to the hostname a "|" followed
+by the `.id` of the certificate.
 
     module "my-cert-map" {
       source        = (
         "github.com/TyeMcQueen/terraform-google-certificate-map-simple" )
       dns-zone-ref  = "my-zone"
-      map-name      = "my-map"
-      hostnames     = [
+      map-name1     = "my-map"
+      hostnames1    = [
         "honeypot|LB",
         join( "|", "*.my-domain.com",
           google_certificate_manager_certificate.wild-cert.id ),
@@ -185,11 +185,9 @@ are not covered in the above examples.
 
 See [Ouput](/outputs.tf) for the declarations of all available output
 values.  Every created resource will be included in one of the output
-values.  There is also `module.NAME.keys` which is just the input
-`var.hostnames` but with any "|cert-id" suffixes stripped.  Each output
-value that is a map will use some or all of these keys.
+values.
 
-As documented, you can use `module.NAME.cert-map[0].id` to associate the
+As documented, you can use `module.NAME.map1[0].id` to associate the
 created certificate map with a load balancer.
 
 You can use `module.NAME.certs[HOSTNAME]` to access items in the

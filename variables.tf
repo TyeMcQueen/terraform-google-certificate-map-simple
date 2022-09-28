@@ -1,16 +1,16 @@
 
-variable "hostnames" {
+variable "hostnames1" {
   description   = <<-EOD
-    Required list of hostnames that (by default) you want GCP-managed
-    certificates created for using DNS authorization.  If a hostname
-    contains no "." characters or ends with a "." character, then the
-    zone domain name is appended (requires `dns-zone-ref`).
+    List of hostnames that (by default) you want GCP-managed certificates
+    created for using DNS authorization.  If a hostname contains no "."
+    characters or ends with a "." character, then the zone domain name is
+    appended (requires `dns-zone-ref`).
 
-    The first host name will be the "PRIMARY" certificate (handed out
-    for unmatched hostnames) if a certificate map is created.
+    The first host name will be the "PRIMARY" certificate (handed out for
+    unmatched hostnames) for `map-name1` (if not "").
 
     Example:
-      hostnames = [ "api", "web.stg.", "my-product.my-domain.com" ]
+      hostnames1 = [ "api", "web.stg.", "my-product.my-domain.com" ]
 
     Appending a literal "|LB" to a hostname will cause an LB-authorized
     cert to be created instead of a DNS-authorized one.
@@ -21,7 +21,7 @@ variable "hostnames" {
     left as "" will silently do nothing.
 
     Example:
-      hostnames         = [
+      hostnames1 = [
         "honeypot", "web.stg.|LB",
         join( "|", "*.my-domain.com",
           google_certificate_manager_certificate.my-cert.id ),
@@ -32,6 +32,51 @@ variable "hostnames" {
     by `dns-zone-ref`.
   EOD
   type          = list(string)
+  default       = []
+}
+
+variable "hostnames2" {
+  description   = <<-EOD
+    Identical to `hostnames1` except that they are used for `map-name2`
+    (if not "").
+
+    At least one of `hostnames1` and `hostnames2` should not be left empty.
+    You should only use one except during disruption-free migration.
+  EOD
+  type          = list(string)
+  default       = []
+}
+
+variable "map-name1" {
+  description   = <<-EOD
+    An optional name for the (1st) Certificate Map to be created.  If
+    left as "" then the (1st) certificate map is not created.  Otherwise,
+    a certificate map is created holding each certificate associated with
+    an entry in `hostnames1`, with the first marked as "PRIMARY".
+
+    If not "", then `hostnames1` must not be empty.  You should only use one
+    of `map-name1` and `map-name2` except during disruption-free migration.
+
+    Example: map-name1 = "my-api"
+  EOD
+  type          = string
+  default       = ""
+}
+
+variable "map-name2" {
+  description   = <<-EOD
+    An optional name for the (2nd) Certificate Map to be created.  If
+    left as "" then the (2nd) certificate map is not created.  Otherwise,
+    a certificate map is created holding each certificate associated with
+    an entry in `hostnames2`, with the first marked as "PRIMARY".
+
+    If not "", then `hostnames2` must not be empty.  You should only use one
+    of `map-name1` and `map-name2` except during disruption-free migration.
+
+    Example: map-name2 = "my-api-v2"
+  EOD
+  type          = string
+  default       = ""
 }
 
 variable "dns-zone-ref" {
@@ -51,19 +96,6 @@ variable "dns-zone-ref" {
     Examples:
       dns-zone-ref = "my-dns-zone"
       dns-zone-ref = google_dns_managed_zone.my-zone.name
-  EOD
-  type          = string
-  default       = ""
-}
-
-variable "map-name" {
-  description   = <<-EOD
-    An optional name for the Certificate Map to be created.  If left as ""
-    then no certificate map is created.  Otherwise, a certificate map is
-    created holding all of the created/referenced certificates and where the
-    certificate for the first value in `hostnames` is marked as "PRIMARY".
-
-    Example: map-name = "my-api"
   EOD
   type          = string
   default       = ""
