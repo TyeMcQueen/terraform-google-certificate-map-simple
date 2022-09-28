@@ -115,6 +115,18 @@ characters or that end in a "." character.  So, with the above domain
 definition, you could use hostnames like "api", "web.stg.", or
 "web.my-domain.com" and get DNS-authorized certs.
 
+### Why The "1"s?
+
+You may have wondered about the input variable names `map-name1` and
+`hostnames1`.  There are also `map-name2` and `hostnames2` and you
+will usually find either the first pair used or the 2nd pair but not
+both at the same time.  This provides a way to make changes to your
+certificate map with no disruption to the ingress of your service.  This
+approach was selected due to complex aspects of how different parts of
+certificate map infrastructure connect together and how Terraform manages
+dependencies between items of infrastructure.  You can read more about
+how these are used at [Deletions](#deletions).
+
 
 ## Certificates But No Map
 
