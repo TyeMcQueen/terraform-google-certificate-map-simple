@@ -16,16 +16,14 @@ variable "hostnames1" {
     cert to be created instead of a DNS-authorized one.
 
     Other types of certificates can be included in the created map by
-    appending to a hostname a "|" followed by the `.id` of the certificate
-    that you created outside of this module.  Doing this with `map-name`
-    left as "" will silently do nothing.
+    appending to a hostname a "|" followed by an index (starting at 0)
+    into `cert-ids` selecting the `.id` of a certificate that you created
+    outside of this module.  Doing this with `map-name1` left as "" will
+    silently do nothing.
 
     Example:
-      hostnames1 = [
-        "honeypot", "web.stg.|LB",
-        join( "|", "*.my-domain.com",
-          google_certificate_manager_certificate.my-cert.id ),
-      ]
+      hostnames1 = [ "honeypot", "web.stg.|LB", "*.my-domain.com|0" ]
+      cert-ids   = [ google_certificate_manager_certificate.my-cert.id ]
 
     Using a fully qualified hostname that is not followed by "|" will only
     work if the hostname would be a valid addition to the Zone referenced
@@ -77,6 +75,24 @@ variable "map-name2" {
   EOD
   type          = string
   default       = ""
+}
+
+variable "cert-ids" {
+  description   = <<-EOD
+    An optional list of the `.id`s for certificates that you created outside
+    of this module.  You use each by appending "|" followed by its position
+    in this list (starting at 0) to a hostname (in `hostnames1` and/or
+    `hostnames2`).
+
+    Example:
+      cert-ids   = [
+        google_certificate_manager_certificate.api.id,
+        google_certificate_manager_certificate.web.id,
+      ]
+      hostnames1 = [ "api|0", "web|1" ]
+  EOD
+  type          = list(string)
+  default       = []
 }
 
 variable "dns-zone-ref" {

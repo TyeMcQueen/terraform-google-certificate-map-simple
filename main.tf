@@ -74,6 +74,11 @@ locals {
     local.tosuff[e] == ""    ? "DNS" :
     local.tosuff[e] == "|LB" ? "LB" : "EXT" ) }
 
+  # Map from input hostname (with optional suffix) to a cert-id's index:
+  toidx = { for e in local.hostnames :
+    e => trimprefix( local.tosuff[e], "|" )
+    if local.totype[e] == "EXT" }
+
   # Map from input hostname (with optional suffix) to fully qualified hostname:
   tofq = { for e in local.hostnames : e => [ for h in [ split("|",e)[0] ] :
     1 == length(split(".",h)) ? "${h}.${local.zone-domain}" :
@@ -179,26 +184,28 @@ locals {
   dns1p = "DNS" != local.prim1-type ? [] : [ local.prim1 ]
   lb1p  = "LB"  != local.prim1-type ? [] : [ local.prim1 ]
   ext1p = "EXT" != local.prim1-type ? {} : {
-    local.prim1 = trimprefix( "|", local.prim1-suff ) }
+    (local.prim1) = local.toidx[local.prim1e] }
 
   dns2p = "DNS" != local.prim2-type ? [] : [ local.prim2 ]
   lb2p  = "LB"  != local.prim2-type ? [] : [ local.prim2 ]
   ext2p = "EXT" != local.prim2-type ? {} : {
-    local.prim2 = trimprefix( "|", local.prim2-suff ) }
+    (local.prim2) = local.toidx[local.prim2e] }
 
   dns1ents  = var.map-name1 == "" ? [] : [ for e, fq in local.tofq : fq
     if "2" != local.tonum[e] && fq != local.prim1 && local.totype[e] == "DNS" ]
   lb1ents   = var.map-name1 == "" ? [] : [ for e, fq in local.tofq : fq
     if "2" != local.tonum[e] && fq != local.prim1 && local.totype[e] == "LB" ]
-  ext1ents  = var.map-name1 == "" ? [] : [ for e, fq in local.tofq : fq
-    if "2" != local.tonum[e] && fq != local.prim1 && local.totype[e] == "EXT" ]
+  ext1ents  = var.map-name1 == "" ? {} : { for e, fq in local.tofq :
+    fq => local.toidx[e]
+    if "2" != local.tonum[e] && fq != local.prim1 && local.totype[e] == "EXT" }
 
   dns2ents  = var.map-name2 == "" ? [] : [ for e, fq in local.tofq : fq
     if "1" != local.tonum[e] && fq != local.prim2 && local.totype[e] == "DNS" ]
   lb2ents   = var.map-name2 == "" ? [] : [ for e, fq in local.tofq : fq
     if "1" != local.tonum[e] && fq != local.prim2 && local.totype[e] == "LB" ]
-  ext2ents  = var.map-name2 == "" ? [] : [ for e, fq in local.tofq : fq
-    if "1" != local.tonum[e] && fq != local.prim2 && local.totype[e] == "EXT" ]
+  ext2ents  = var.map-name2 == "" ? {} : { for e, fq in local.tofq :
+    fq => local.toidx[e]
+    if "1" != local.tonum[e] && fq != local.prim2 && local.totype[e] == "EXT" }
 }
 
 resource "google_certificate_manager_certificate_map_entry" "dns1" {
@@ -246,12 +253,12 @@ resource "google_certificate_manager_certificate_map_entry" "lb2" {
 }
 
 resource "google_certificate_manager_certificate_map_entry" "ext1" {
-  for_each      = toset(local.ext1ents)
+  for_each      = local.ext1ents
   map           = google_certificate_manager_certificate_map.m1[0].name
   name          = local.toname[each.key]
   description   = var.description
   labels        = var.labels
-  certificates  = [ each.value ]
+  certificates  = [ var.cert-ids[tonumber(each.value)] ]
   hostname      = each.key
 }
 
@@ -261,7 +268,7 @@ resource "google_certificate_manager_certificate_map_entry" "ext2" {
   name          = local.toname[each.key]
   description   = var.description
   labels        = var.labels
-  certificates  = [ each.value ]
+  certificates  = [ var.cert-ids[tonumber(each.value)] ]
   hostname      = each.key
 }
 
@@ -315,7 +322,7 @@ resource "google_certificate_manager_certificate_map_entry" "ext1p" {
   name          = local.toname[each.key]
   description   = var.description
   labels        = var.labels
-  certificates  = [ each.value ]
+  certificates  = [ var.cert-ids[tonumber(each.value)] ]
   matcher       = "PRIMARY"
 }
 
@@ -325,6 +332,6 @@ resource "google_certificate_manager_certificate_map_entry" "ext2p" {
   name          = local.toname[each.key]
   description   = var.description
   labels        = var.labels
-  certificates  = [ each.value ]
+  certificates  = [ var.cert-ids[tonumber(each.value)] ]
   matcher       = "PRIMARY"
 }
