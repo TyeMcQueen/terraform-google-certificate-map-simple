@@ -28,6 +28,10 @@ variable "hostnames1" {
     Using a fully qualified hostname that is not followed by "|" will only
     work if the hostname would be a valid addition to the Zone referenced
     by `dns-zone-ref`.
+
+    To simplify using this module with the terraform-google-ingress-to-gke
+    module, hostnames that end with just the "|" character are simply
+    ignored.
   EOD
   type          = list(string)
   default       = []

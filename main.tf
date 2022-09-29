@@ -63,7 +63,8 @@ locals {
             ? trimsuffix( dom, "." )
             : "/invalid-zone-ref" ][0] )
 
-  hostnames = distinct(flatten([ var.hostnames1, var.hostnames2 ]))
+  hostnames = [ for h in distinct(flatten([ var.hostnames1, var.hostnames2 ]))
+    : h if "|" != substr(h,-1,1) ]
 
   # Map from input hostname (with optional suffix) to just the suffix:
   tosuff = { for e in local.hostnames :
