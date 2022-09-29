@@ -1,8 +1,8 @@
 # terraform-google-certificate-map-simple
 
 A Terraform module for using GCP Cloud Certificate Manager to create one
-or more GCP-managed SSL Certificates (especially DNS-authorized ones)
-and (optionally) place them all into a certificate map.
+or more GCP-managed SSL Certificates (especially DNS-authorized ones) and
+(optionally) place them all into a certificate map.
 
 
 ## Contents
@@ -55,8 +55,8 @@ outage (or longer).
 Any IP address exposed on the internet will get a considerable stream of
 probe attempts from hackers and "script kiddies".  If you use certs not
 via Cloud Certificate Manager, then any probe attempts that use HTTPS will
-be handed a certificate letting the hackers know what host name to use with
-that IP address.
+be handed a certificate letting the hackers know what host name to use
+with that IP address.
 
 By using Cloud Certificate Manager certificate maps you can specify a
 specific certificate to provide for requests that are not using a known host
@@ -73,8 +73,8 @@ certificates in it.
 
 ## Basic Usage
 
-The following module usage creates 3 GCP-Managed certificates, including the
-required DNS challenge entries.  And creates a certificate map including
+The following module usage creates 3 GCP-Managed certificates, including
+the required DNS challenge entries.  And creates a certificate map including
 all of the certificates and where the cert for "honeypot" is given out for
 unrecognized host names.
 
@@ -86,9 +86,10 @@ unrecognized host names.
       hostnames1    = [ "honeypot", "api", "web" ]
     }
 
-Of course, you probably want to use a less obvious name for your honeypot.
-And the most common use case would only have 2 hostnames: your honeypot and
-your real service hostname.
+Of course, you probably want to use a less obvious name for your honeypot
+(having it not in the same sub-domain is also wise).  And the most common
+use case would only have 2 hostnames: your honeypot and your real service
+hostname.
 
 The DNS entries for honeypot.my-domain.com etc. will be managed outside
 of the module and do not need to be created before you use this module.  All
@@ -196,7 +197,7 @@ See [Input Variables](/variables.tf) for details about all of the input
 variables you can use with this module.  Many less commonly used options
 are not covered in the above examples.
 
-See [Ouput](/outputs.tf) for the declarations of all available output
+See [Output](/outputs.tf) for the declarations of all available output
 values.  Every created resource will be included in one of the output
 values.
 
@@ -284,6 +285,15 @@ dependencies in such a complex case as this).  Of course, you could repeat
 the migration process: switch back to the original map name while copying
 the updated `hostnames2` over `hostnames1`, apply those changes, move to the
 3rd certificate map, apply again, and finally delete the "2" versions.
+
+Note that you can do this type of disruption-free update by invoking
+the module twice.  But if there are DNS-authorized certs that are used
+in both of the certificate maps, then doing it this way gets much uglier
+because it is not possible to create duplicate DNS-authorized certs.
+The end result will also stay uglier because it is impossible to transfer
+a DNS-authorized cert created by the first invocation of the module to
+the second.  This is why the module itself allows for creating a pair of
+certificate maps (that can share certificates created by the module).
 
 ### Types Of Certificates
 

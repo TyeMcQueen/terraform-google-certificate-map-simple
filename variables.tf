@@ -104,6 +104,12 @@ variable "dns-zone-ref" {
     appended to any hostnames that contain no "." characters or that end in
     ".".
 
+    If the DNS zone is managed by this Terraform workspace, then it is best
+    if you set this value by referencing the resource block that creates
+    the zone, like `dns-zone-ref = google_dns_managed_zone.my-zone.name`.
+    This tells Terraform of the dependency, ensuring that the zone creation
+    will happen before the module is invoked.
+
     If all of your hostnames contain "|" (followed by "LB" or a certificate
     `.id`), then you can set `dns-zone-ref = ""` which would require that
     every hostname be fully qualified, containing at least one "." character

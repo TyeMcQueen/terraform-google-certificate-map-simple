@@ -335,3 +335,4 @@ resource "google_certificate_manager_certificate_map_entry" "ext2p" {
   certificates  = [ var.cert-ids[tonumber(each.value)] ]
   matcher       = "PRIMARY"
 }
+
