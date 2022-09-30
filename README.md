@@ -12,6 +12,7 @@ or more GCP-managed SSL Certificates (especially DNS-authorized ones) and
 * [Certificates But No Map](#certificates-but-no-map)
 * [Other Certificate Types](#other-certificate-types)
 * [More Options](#more-options)
+* [Infrastructure Created](#infrastructure-created)
 * [Limitations](#limitations)
 * [A warning about deletions](#deletions)
 * [List of Input Variables](#list-of-input-variables)
@@ -214,6 +215,107 @@ created certificate map with a load balancer.
 You can use `module.NAME.certs[HOSTNAME]` to access items in the
 `.provisioning_issue` and `.authorization_attempt_info` records to get
 information about the status of a certificate.
+
+
+## Infrastructure Created
+
+### Enable Cloud Certificate Manager API
+
+Using the module enables the Certificate Manager API in the GCP project.
+Note that this can take longer than Terraform will wait and so the first
+time you use this module, you may have to wait a minute and then `apply`
+a second time.  There are no input variables nor output values associated
+with this.
+
+### Output Value Maps
+
+The resource records for most of the infrastructure created are returned in
+output values that are maps where the keys are fully qualified hostnames.
+The output value `module.NAME.keys` is the list of these fully qualified
+hostnames, first those from `hostnames1` followed by those from `hostnames2`,
+but skipping any duplicates (and any hostnames that end in just "|").
+
+For example, consider this invocation of the module:
+
+    module "my-certs" {
+      # ...
+      hostnames1    = [ "api", "*", "web" ]
+    } #                  0      1    2
+
+You could get the `.id` for the wildcard cert created via
+`module.my-certs.dns-certs["*.my-domain.com"].id` or via
+`module.my-certs.dns-certs[module.my-certs.keys[1]].id`.
+
+### DNS-Authorized SSL Certificates
+
+For each hostname you list (in `hostnames1` or `hostnames2`) that does not
+contain a "|", a DNS-Authorized SSL Certificate is created.  When this module
+creates such a certificate, it also creates a DNS Authorization and the DNS
+Record that fulfills that authorization.  This last item requires write
+access to the GCP-Managed DNS Zone where the hostname would be registered.
+Obviously, `dns-zone-ref` must be set for this to work.
+
+The only other [input variables](#list-of-input-variables) that impact these
+items are:
+
+* `project`
+* `name-prefix`, `description`, and `labels` (except for DNS records, which
+    do not support such)
+* `dns-ttl-secs` (only the DNS records)
+
+Output values:
+
+* `dns-certs` - A map of resource records for created DNS-auth'ed certificates
+* `dns-auths` - A map of resource records for created DNS authorizations
+* `dns` - A map of resource records for DNS Records granting authorization
+
+### LB-Authorized SSL Certificates
+
+For each hostname you list (in `hostnames1` or `hostnames2`) that ends in
+"|LB", an LB-Authorized SSL Certificate is created.
+
+The only other [input variables](#list-of-input-variables) that impact their
+creation are:
+
+* `project`, `name-prefix`, `description`, and `labels`
+
+Output values:
+
+* `lb-certs` - A map of resource records for created LB-auth'ed certificates
+
+### Certificate Maps
+
+For each of `map-name1` and `map-name2` that are not left blank, this
+module creates a certificate map having the specified name.  The entries
+correspond to the entries in the same-numbered `hostnames1` and/or
+`hostnames2` variables.
+
+The only other [input variables](#list-of-input-variables) that impact their
+creation are:
+
+* `project`, `description`, `labels`, and `map-labels`
+
+The output value with the resource record for the `map-name1` certificate
+map is `module.NAME.map1[0]`.  For `map-name2`, it is `module.NAME.map2[0]`.
+
+### Certificate Map Entries
+
+When a certificate map is created, an entry is created for each hostname
+listed in the same-numbered input variable (`hostnames1` or `hostnames2`),
+except for hostnames that end in just "|".
+
+The only other [input variables](#list-of-input-variables) that impact their
+creation are:
+
+* `cert-ids`, `project`, `description`, and `labels`
+
+The creation of certificate map entries is actually done using a combination
+of 12 different resource blocks.  These are combined into 4 different
+output values: `primary1`, `others1`, `primary2`, and `others2`.  Each of
+these is a Terraform map from fully qualified hostnames to resource records
+for certificate map entries.  The `primary1` and `primary2` maps will each
+have either 0 or 1 entries which are the PRIMARY entries.  The `others1`
+and `others2` maps will contain the non-PRIMARY entries.
 
 
 ## Limitations
