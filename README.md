@@ -23,6 +23,12 @@ even having a working load balancing configuration so you can troubleshoot
 any problems with certificate creation before you set up the load balancer
 that will use the certificates.
 
+### Support Disruption-Free Migration
+
+Using DNS-authorized certificates allow for disruption-free migration of
+HTTPS traffic.  This was not possible before without resorting at least
+temporarily to customer-managed SSL certificates.
+
 ### Resolve Certificate Creation Problems Early
 
 Each certificate creation attempt will usually take about 20 minutes (or
@@ -228,6 +234,10 @@ even supported by GCP), a newly created certificate is not immediately
 active.
 
 To make changes without disruption, first add a second certificate map.
+Also, all of the future certificates need to be DNS-authorized or
+customer-managed certificates as LB-authorized certificates just cannot
+be migrated to without disruption.
+
 For example, consider the below simple module invocation.
 
     module "my-cert-map" {
