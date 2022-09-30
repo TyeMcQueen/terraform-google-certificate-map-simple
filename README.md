@@ -14,6 +14,7 @@ or more GCP-managed SSL Certificates (especially DNS-authorized ones) and
 * [More Options](#more-options)
 * [Limitations](#limitations)
 * [A warning about deletions](#deletions)
+* [List of Input Variables](#list-of-input-variables)
 
 
 ## Benefits
@@ -348,3 +349,19 @@ versions did not support Cloud Certificate Manager.
 
 You must use at least Terraform v0.13 as the module uses some features
 that were not available in earlier versions.
+
+
+## List of Input Variables
+
+* [cert-ids](/variables.tf#L84)
+* [description](/variables.tf#L130)
+* [dns-ttl-secs](/variables.tf#L188)
+* [dns-zone-ref](/variables.tf#L102)
+* [hostnames1](/variables.tf#L2)
+* [hostnames2](/variables.tf#L40)
+* [labels](/variables.tf#L141)
+* [map-labels](/variables.tf#L153)
+* [map-name1](/variables.tf#L52)
+* [map-name2](/variables.tf#L68)
+* [name-prefix](/variables.tf#L175)
+* [project](/variables.tf#L166)
