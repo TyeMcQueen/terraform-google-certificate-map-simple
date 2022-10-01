@@ -259,8 +259,8 @@ The only other [input variables](#list-of-input-variables) that impact these
 items are:
 
 * `project`
-* `name-prefix`, `description`, and `labels` (except for DNS records, which
-    do not support such)
+* `name-prefix`, `star`, `description`, and `labels` (except for DNS records,
+    which do not support custom names, descriptions, nor labels)
 * `dns-ttl-secs` (only the DNS records)
 
 Output values:
@@ -457,7 +457,7 @@ that were not available in earlier versions.
 
 * [cert-ids](/variables.tf#L84)
 * [description](/variables.tf#L130)
-* [dns-ttl-secs](/variables.tf#L188)
+* [dns-ttl-secs](/variables.tf#L202)
 * [dns-zone-ref](/variables.tf#L102)
 * [hostnames1](/variables.tf#L2)
 * [hostnames2](/variables.tf#L40)
@@ -467,3 +467,4 @@ that were not available in earlier versions.
 * [map-name2](/variables.tf#L68)
 * [name-prefix](/variables.tf#L175)
 * [project](/variables.tf#L166)
+* [star](/variables.tf#L188)

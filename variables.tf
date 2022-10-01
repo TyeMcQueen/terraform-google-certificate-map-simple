@@ -185,6 +185,20 @@ variable "name-prefix" {
   default       = ""
 }
 
+variable "star" {
+  description   = <<-EOD
+    What to use in place of `*` in resource names.  If you want to
+    have separate certs for `*.my-domain.com` and `star.my-domain.com`,
+    then you should change this value to avoid name collisions.  Must
+    use only characters allowed in GCP resource names (likely just
+    lowercase letters, numbers, and "-").
+
+    Example: star = "wild"
+  EOD
+  type          = string
+  default       = "star"
+}
+
 variable "dns-ttl-secs" {
   description   = <<-EOD
     Time-To-Live, in seconds, for created DNS records (challenge data).

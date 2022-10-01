@@ -98,7 +98,7 @@ locals {
 
   # Map from fq to usable resource name version of it:
   toname = { for fq in local.fqs : fq => (
-    lower(replace( replace(fq,"*","-"), ".", "-" )) ) }
+    lower(replace( replace(fq,"*",var.star), ".", "-" )) ) }
 
   # Fully qualified hostnames for DNS-authorized certs:
   dnsfq = [ for e, fq in local.tofq : fq if local.totype[e] == "DNS" ]
