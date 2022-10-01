@@ -115,7 +115,7 @@ created certificate map.
 
     resource "google_compute_target_https_proxy" "my-https" {
       # ...
-      certificate_map   = module.my-cert-map.map1[0].id
+      certificate_map = "//certificatemanager.googleapis.com/${module.my-cert-map.map1[0].id}"
     }
 
 For DNS-authorized certs created by this module, the hostname must be a
@@ -150,6 +150,26 @@ will only create the certificates and not any certificate maps.
       hostnames1    = [ "honeypot", "api", "web" ]
     }
 
+## Wildcard Certificate Map
+
+The following module invocation will create a wildcard certificate map with a GCP-Managed DNS Zone.
+
+    module "my-wildcard-cert-map" {
+      source       = (
+        "github.com/TyeMcQueen/terraform-google-certificate-map-simple" )
+      dns-zone-ref = "my-zone"
+      map-name1    = "star-zone-com"
+      hostnames1   = ["*"]
+    }
+
+### Usage with a Google Compute Target HTTPS Proxy
+
+The output wildcard certificate map can be used by a GCP Compute Target HTTPS Proxy as follows:
+
+    resource "google_compute_target_https_proxy" "default" {
+      # ...
+      certificate_map = "//certificatemanager.googleapis.com/${module.my-wildcard-cert-map.map1[0].id}"
+    }
 
 ## Without a GCP-Managed DNS Zone
 
