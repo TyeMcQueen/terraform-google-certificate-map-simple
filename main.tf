@@ -115,7 +115,7 @@ resource "google_certificate_manager_dns_authorization" "a" {
   project       = local.project
   name          = "${var.name-prefix}${local.toname[each.value]}"
   description   = var.description
-  domain        = each.value
+  domain        = trimprefix( each.value, "*." )
   labels        = var.labels
 }
 
@@ -138,8 +138,7 @@ resource "google_certificate_manager_certificate" "dns" {
   description   = var.description
   labels        = var.labels
   managed {
-    domains             = [
-      google_certificate_manager_dns_authorization.a[each.value].domain ]
+    domains             = [ each.value ]
     dns_authorizations  = [
       google_certificate_manager_dns_authorization.a[each.value].id ]
   }
