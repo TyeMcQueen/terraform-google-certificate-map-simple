@@ -19,11 +19,15 @@ variable "hostnames1" {
     appending to a hostname a "|" followed by an index (starting at 0)
     into `cert-ids` selecting the `.id` of a certificate that you created
     outside of this module.  Doing this with `map-name1` left as "" will
-    silently do nothing.
+    silently do nothing.  If the first hostname references an entry in
+    `cert-ids`, then you can even omit the hostname part.
 
     Example:
-      hostnames1 = [ "honeypot", "web.stg.|LB", "*.my-domain.com|0" ]
-      cert-ids   = [ google_certificate_manager_certificate.my-cert.id ]
+      hostnames1 = [ "|0", "web.stg.|LB", "*.my-domain.com|1" ]
+      cert-ids   = [
+        google_certificate_manager_certificate.honeypot.id,
+        google_certificate_manager_certificate.wild.id,
+      ]
 
     Using a fully qualified hostname that is not followed by "|" will only
     work if the hostname would be a valid addition to the Zone referenced

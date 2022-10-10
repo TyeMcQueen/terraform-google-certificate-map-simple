@@ -185,14 +185,15 @@ the literal string "|LB" to the end of a hostname, as noted above.
 
 And you can use certificates that you created elsewhere in the certificate
 map that this module creates.  Simply append to the hostname a "|" followed
-by an offset into `cert-ids`.
+by an offset into `cert-ids`.  When you do that for the first hostname
+listed, you can also omit the hostname.
 
     module "my-cert-map" {
       source        = (
         "github.com/TyeMcQueen/terraform-google-certificate-map-simple" )
       dns-zone-ref  = "my-zone"
       map-name1     = "my-map"
-      hostnames1    = [ "honeypot|0", "api|1" ]
+      hostnames1    = [ "|0", "api|1" ]
       cert-ids      = [
         google_certificate_manager_certificate.honey.id,
         google_certificate_manager_certificate.api.id,

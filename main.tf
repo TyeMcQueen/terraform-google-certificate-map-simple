@@ -82,6 +82,7 @@ locals {
 
   # Map from input hostname (with optional suffix) to fully qualified hostname:
   tofq = { for e in local.hostnames : e => [ for h in [ split("|",e)[0] ] :
+    "" == h ? "primary" :
     1 == length(split(".",h)) ? "${h}.${local.zone-domain}" :
     "." == substr(h,-1,1) ? "${h}${local.zone-domain}" : h
   ][0] }
