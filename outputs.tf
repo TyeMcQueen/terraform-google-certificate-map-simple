@@ -47,21 +47,21 @@ output "lb-certs" {
 }
 
 output "primary1" {
-  description   = "A 0- or 1-entry map with the PRIMARY map 1 entry"
-  value         = merge(
+  description   = "A 0- or 1-entry list with the PRIMARY map 1 entry"
+  value         = [ for h, r in merge(
     google_certificate_manager_certificate_map_entry.dns1p,
     google_certificate_manager_certificate_map_entry.lb1p,
     google_certificate_manager_certificate_map_entry.ext1p,
-  )
+  ) : r ]
 }
 
 output "primary2" {
-  description   = "A 0- or 1-entry map with the PRIMARY map 2 entry"
-  value         = merge(
+  description   = "A 0- or 1-entry list with the PRIMARY map 2 entry"
+  value         = [ for h, r in merge(
     google_certificate_manager_certificate_map_entry.dns2p,
     google_certificate_manager_certificate_map_entry.lb2p,
     google_certificate_manager_certificate_map_entry.ext2p,
-  )
+  ) : r ]
 }
 
 output "others1" {

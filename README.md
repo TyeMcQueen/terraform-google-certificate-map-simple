@@ -324,11 +324,11 @@ creation are:
 
 The creation of certificate map entries is actually done using a combination
 of many different resource blocks.  These are combined into 4 different
-output values: `primary1`, `others1`, `primary2`, and `others2`.  Each of
-these is a Terraform map from fully qualified hostnames to resource records
-for certificate map entries.  The `primary1` and `primary2` maps will each
-have either 0 or 1 entries which are the PRIMARY entries.  The `others1`
-and `others2` maps will contain the non-PRIMARY entries.
+output values: `primary1`, `others1`, `primary2`, and `others2`.  The
+`primary1` and `primary2` values will each be a 0- or 1-entry list containing
+the resource records for the PRIMARY entries.  The `others1` and `others2`
+value will each be a Terraform map from fully qualified hostnames to resource
+records for the non-PRIMARY entries.
 
 
 ## Limitations
