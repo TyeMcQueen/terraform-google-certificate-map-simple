@@ -27,7 +27,7 @@ that will use the certificates.
 
 ### Support Disruption-Free Migration
 
-Using DNS-authorized certificates allow for disruption-free migration of
+Using DNS-authorized certificates allows for disruption-free migration of
 HTTPS traffic.  This was not possible before without resorting at least
 temporarily to customer-managed SSL certificates.
 
@@ -66,13 +66,13 @@ via Cloud Certificate Manager, then any probe attempts that use HTTPS will
 be handed a certificate letting the hackers know what host name to use
 with that IP address.
 
-By using Cloud Certificate Manager certificate maps you can specify a
-specific certificate to provide for requests that are not using a known host
-name.  So you can control the host name that the hackers discover.  You can
-use a "honeypot" host name that is not used for legitimate traffic and thus
-more easily identify requests that you can just reject, simplifying keeping
-your endpoint secure and making it easy to remove a lot of noise from your
-logs.
+By using Cloud Certificate Manager certificate maps you can designate a
+specific certificate to be returned for requests that are not using a known
+hostname.  So you can control the host name that the hackers discover.  You
+can use a "honeypot" host name that is not used for legitimate traffic and
+thus more easily identify requests that you can just reject, simplifying
+keeping your endpoint secure and making it easy to remove a lot of noise
+from your logs.
 
 The other benefits require the use of DNS-authorized certificates.  You
 get this benefit by using a certificate map, even if you use LB-authorized
@@ -178,23 +178,23 @@ Creating a certificate not using DNS authorization only requires a single
 simplify the creation of simple LB-authorized certificates by just appending
 the literal string "|LB" to the end of a hostname, as noted above.
 
-And you can use certificates that you create elsewhere in the certificate
+And you can use certificates that you created elsewhere in the certificate
 map that this module creates.  Simply append to the hostname a "|" followed
-by the `.id` of the certificate.
+by an offset into `cert-ids`.
 
     module "my-cert-map" {
       source        = (
         "github.com/TyeMcQueen/terraform-google-certificate-map-simple" )
       dns-zone-ref  = "my-zone"
       map-name1     = "my-map"
-      hostnames1    = [
-        "honeypot|LB",
-        join( "|", "*.my-domain.com",
-          google_certificate_manager_certificate.wild-cert.id ),
+      hostnames1    = [ "honeypot|0", "api|1" ]
+      cert-ids      = [
+        google_certificate_manager_certificate.honey.id,
+        google_certificate_manager_certificate.api.id,
       ]
     }
 
-This example specifies `dns-zone-ref` so that the short hostname "honeypot"
+This example specifies `dns-zone-ref` so that the short hostname "api"
 can be used.  But no DNS-authorized certificates are created so Terraform
 only needs read-only access to that zone.
 
@@ -310,7 +310,7 @@ creation are:
 * `cert-ids`, `project`, `description`, and `labels`
 
 The creation of certificate map entries is actually done using a combination
-of 12 different resource blocks.  These are combined into 4 different
+of many different resource blocks.  These are combined into 4 different
 output values: `primary1`, `others1`, `primary2`, and `others2`.  Each of
 these is a Terraform map from fully qualified hostnames to resource records
 for certificate map entries.  The `primary1` and `primary2` maps will each
