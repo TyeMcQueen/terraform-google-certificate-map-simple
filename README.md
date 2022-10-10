@@ -109,14 +109,19 @@ for example:
       dns_name  = "my-domain.com."
     }
 
-You can use the created certificate map via the output variable `map1`
-which will be a 0- or 1-entry list containing the resource record of the
-created certificate map.
+You can use the created certificate map via the output value `map-id1[0]`
+(or `map-id2[0]`) which will be a 0- or 1-entry list containing the ID of
+the created certificate map.
 
     resource "google_compute_target_https_proxy" "my-https" {
       # ...
-      certificate_map   = module.my-cert-map.map1[0].id
+      certificate_map   = module.my-cert-map.map-id1[0]
     }
+
+Due to a likely bug in the updated APIs that allow you to attach a
+certificate map to a load balancer, you should use this output variable
+rather than `map1[0].id` so that "//certificatemanager.googleapis.com"
+will be prepended, as the APIs currently require.
 
 For DNS-authorized certs created by this module, the hostname must be a
 subdomain of the GCP-Managed Zone referenced by `dns-zone-ref`.  That domain
@@ -297,6 +302,13 @@ creation are:
 
 The output value with the resource record for the `map-name1` certificate
 map is `module.NAME.map1[0]`.  For `map-name2`, it is `module.NAME.map2[0]`.
+
+To make use of a certificate map, you'll want its `.id`.  However, what
+is likely a bug in the updated APIs that allow a certificate map to be
+attached currently means that the `.id` of a Terraform resource record
+for a certificate map will not work.  So rather than using
+`module.NAME.map1[0].id`, you should use `module.NAME.map-id1[0]` which
+will have "//certificate-manager.googleapis.com" prepended to it.
 
 ### Certificate Map Entries
 

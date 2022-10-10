@@ -171,6 +171,15 @@ resource "google_certificate_manager_certificate_map" "m2" {
 }
 
 locals {
+  id1 = "" == var.map-name1 ? [] : [ for id in [
+    google_certificate_manager_certificate_map.m1[0].id ] :
+      1 < length(split( "certificatemanager.googleapis.com", id ))
+        ? id : "//certificatemanager.googleapis.com/${id}" ]
+  id2 = "" == var.map-name2 ? [] : [ for id in [
+    google_certificate_manager_certificate_map.m2[0].id ] :
+      1 < length(split( "certificatemanager.googleapis.com", id ))
+        ? id : "//certificatemanager.googleapis.com/${id}" ]
+
   prim1e        = var.map-name1 == "" ? "" : var.hostnames1[0]
   prim1         = var.map-name1 == "" ? "" : local.tofq[ local.prim1e ]
   prim1-suff    = var.map-name1 == "" ? "" : local.tosuff[ local.prim1e ]
