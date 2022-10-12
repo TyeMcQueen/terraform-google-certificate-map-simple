@@ -15,7 +15,7 @@ or more GCP-managed SSL Certificates (especially DNS-authorized ones) and
 * [Infrastructure Created](#infrastructure-created)
 * [Limitations](#limitations)
 * [A warning about deletions](#deletions)
-* [List of Input Variables](#list-of-input-variables)
+* [List of Input Variables](#input-variables)
 
 
 ## Benefits
@@ -261,7 +261,7 @@ Record that fulfills that authorization.  This last item requires write
 access to the GCP-Managed DNS Zone where the hostname would be registered.
 Obviously, `dns-zone-ref` must be set for this to work.
 
-The only other [input variables](#list-of-input-variables) that impact these
+The only other [input variables](#input-variables) that impact these
 items are:
 
 * `project`
@@ -280,7 +280,7 @@ Output values:
 For each hostname you list (in `hostnames1` or `hostnames2`) that ends in
 "|LB", an LB-Authorized SSL Certificate is created.
 
-The only other [input variables](#list-of-input-variables) that impact their
+The only other [input variables](#input-variables) that impact their
 creation are:
 
 * `project`, `name-prefix`, `description`, and `labels`
@@ -296,7 +296,7 @@ module creates a certificate map having the specified name.  The entries
 correspond to the entries in the same-numbered `hostnames1` and/or
 `hostnames2` variables.
 
-The only other [input variables](#list-of-input-variables) that impact their
+The only other [input variables](#input-variables) that impact their
 creation are:
 
 * `project`, `description`, `labels`, and `map-labels`
@@ -317,7 +317,7 @@ When a certificate map is created, an entry is created for each hostname
 listed in the same-numbered input variable (`hostnames1` or `hostnames2`),
 except for hostnames that end in just "|".
 
-The only other [input variables](#list-of-input-variables) that impact their
+The only other [input variables](#input-variables) that impact their
 creation are:
 
 * `cert-ids`, `project`, `description`, and `labels`
@@ -466,18 +466,18 @@ You must use at least Terraform v0.13 as the module uses some features
 that were not available in earlier versions.
 
 
-## List of Input Variables
+## Input Variables
 
-* [cert-ids](/variables.tf#L84)
-* [description](/variables.tf#L130)
-* [dns-ttl-secs](/variables.tf#L202)
-* [dns-zone-ref](/variables.tf#L102)
+* [cert-ids](/variables.tf#L88)
+* [description](/variables.tf#L134)
+* [dns-ttl-secs](/variables.tf#L206)
+* [dns-zone-ref](/variables.tf#L106)
 * [hostnames1](/variables.tf#L2)
-* [hostnames2](/variables.tf#L40)
-* [labels](/variables.tf#L141)
-* [map-labels](/variables.tf#L153)
-* [map-name1](/variables.tf#L52)
-* [map-name2](/variables.tf#L68)
-* [name-prefix](/variables.tf#L175)
-* [project](/variables.tf#L166)
-* [star](/variables.tf#L188)
+* [hostnames2](/variables.tf#L44)
+* [labels](/variables.tf#L145)
+* [map-labels](/variables.tf#L157)
+* [map-name1](/variables.tf#L56)
+* [map-name2](/variables.tf#L72)
+* [name-prefix](/variables.tf#L179)
+* [project](/variables.tf#L170)
+* [star](/variables.tf#L192)
