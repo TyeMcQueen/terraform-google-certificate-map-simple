@@ -63,8 +63,8 @@ locals {
             ? trimsuffix( dom, "." )
             : "/invalid-dns-zone-ref" ][0] )
 
-  hostnames = [ for h in distinct(flatten([ var.hostnames1, var.hostnames2 ]))
-    : h if "|" != substr(h,-1,1) ]
+  hostnames = [ for e in distinct(flatten([ var.hostnames1, var.hostnames2 ]))
+    : e if "|" != substr(e,-1,1) ]
 
   # Map from input hostname (with optional suffix) to just the suffix:
   tosuff = { for e in local.hostnames :
@@ -95,7 +95,7 @@ locals {
 
   # Just the list of fully qualified hostnames (no suffixes) for output
   # as keys for maps of resource records:
-  fqs = distinct([ for e, fq in local.tofq : fq ])
+  fqs = distinct([ for e in local.hostnames : local.tofq[e] ])
 
   # Map from fq to usable resource name version of it:
   toname = { for fq in local.fqs : fq => (
