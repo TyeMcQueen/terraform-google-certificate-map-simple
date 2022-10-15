@@ -57,11 +57,11 @@ locals {
     : [ for name in [ data.google_dns_managed_zone.z[0].name ] :
         try( 0 < length(name), false ) ? name
         : "DNS Zone ${local.zone-proj}/${local.dns-data-title} not found" ][0] )
-  zone-domain = ( var.dns-zone-ref == "" ? "/no-zone-ref"
+  zone-domain = ( var.dns-zone-ref == "" ? "/no-dns-zone-ref"
     : [ for dom in [ data.google_dns_managed_zone.z[0].dns_name ] :
           try( 0 < length(dom), false )
             ? trimsuffix( dom, "." )
-            : "/invalid-zone-ref" ][0] )
+            : "/invalid-dns-zone-ref" ][0] )
 
   hostnames = [ for h in distinct(flatten([ var.hostnames1, var.hostnames2 ]))
     : h if "|" != substr(h,-1,1) ]

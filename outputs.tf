@@ -11,18 +11,19 @@ output "map2" {
 
 output "map-id1" {
   description   = (
-    "A 0- or 1-item list of cert map 1's .id formatted for use in LB resources" )
+    "A 0- or 1-item list of cert map 1's .id formatted to use in LB resources" )
   value         = local.id1
 }
 
 output "map-id2" {
   description   = (
-    "A 0- or 1-item list of cert map 2's .id formatted for use in LB resources" )
+    "A 0- or 1-item list of cert map 2's .id formatted to use in LB resources" )
   value         = local.id2
 }
 
 output "keys" {
-  description   = "The list of all keys, some used in each of the below maps"
+  description   = (
+    "List of fully qualified hostnames, used as keys in the below maps" )
   value         = local.fqs
 }
 

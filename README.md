@@ -9,13 +9,16 @@ or more GCP-managed SSL Certificates (especially DNS-authorized ones) and
 
 * [Benefits](#benefits)
 * [Basic Usage](#basic-usage)
+* [Using Created Certificate Map](#using-created-certificate-map)
 * [Certificates But No Map](#certificates-but-no-map)
+* [Wildcard Certificate Map](#wildcard-certificate-map)
+* [Without a GCP-Managed DNS Zone](#without-a-gcp-managed-dns-zone)
 * [Other Certificate Types](#other-certificate-types)
 * [More Options](#more-options)
 * [Infrastructure Created](#infrastructure-created)
 * [Limitations](#limitations)
 * [A warning about deletions](#deletions)
-* [List of Input Variables](#input-variables)
+* [Input Variables](#input-variables)
 
 
 ## Benefits
@@ -109,20 +112,6 @@ for example:
       dns_name  = "my-domain.com."
     }
 
-You can use the created certificate map via the output value `map-id1[0]`
-(or `map-id2[0]`) which will be a 0- or 1-entry list containing the ID of
-the created certificate map.
-
-    resource "google_compute_target_https_proxy" "my-https" {
-      # ...
-      certificate_map   = module.my-cert-map.map-id1[0]
-    }
-
-Due to a likely bug in the updated APIs that allow you to attach a
-certificate map to a load balancer, you should use this output variable
-rather than `map1[0].id` so that "//certificatemanager.googleapis.com"
-will be prepended, as the APIs currently require.
-
 For DNS-authorized certs created by this module, the hostname must be a
 subdomain of the GCP-Managed Zone referenced by `dns-zone-ref`.  That domain
 is automatically appended to hostnames that either do not contain any "."
@@ -143,6 +132,23 @@ dependencies between items of infrastructure.  You can read more about
 how these are used at [Deletions](#deletions).
 
 
+## Using Created Certificate Map
+
+You can use the certificate map created by this module via the output
+value `map-id1[0]` (or `map-id2[0]`) which will be the ID of the created
+certificate map.  For example:
+
+    resource "google_compute_target_https_proxy" "my-https" {
+      # ...
+      certificate_map   = module.my-cert-map.map-id1[0]
+    }
+
+Due to a likely bug in the updated APIs that allow you to attach a
+certificate map to a load balancer, you should use this output variable
+rather than `map1[0].id` so that "//certificatemanager.googleapis.com"
+will be prepended, as the APIs currently require.
+
+
 ## Certificates But No Map
 
 The following module invocation does not specify any map names and so
@@ -153,6 +159,25 @@ will only create the certificates and not any certificate maps.
         "github.com/TyeMcQueen/terraform-google-certificate-map-simple" )
       dns-zone-ref  = "my-zone"
       hostnames1    = [ "honeypot", "api", "web" ]
+    }
+
+You could use the 2nd ("api") certificate above via the output
+value `module.my-certs.dns-certs[module.my-certs.keys[1]].id`.
+Or you can use the _fully qualified_ hostname as the key, like
+`module.my-certs.dns-certs["api.my-domain.com"].id`.
+
+
+## Wildcard Certificate Map
+
+The following module invocation will create a certificate map with a single
+wildcard certificate via a GCP-Managed DNS Zone.
+
+    module "my-wildcard-cert-map" {
+      source        = (
+        "github.com/TyeMcQueen/terraform-google-certificate-map-simple" )
+      dns-zone-ref  = "my-zone"
+      map-name1     = "star-map"
+      hostnames1    = [ "*" ]
     }
 
 
@@ -183,8 +208,8 @@ Creating a certificate not using DNS authorization only requires a single
 simplify the creation of simple LB-authorized certificates by just appending
 the literal string "|LB" to the end of a hostname, as noted above.
 
-And you can use certificates that you created elsewhere in the certificate
-map that this module creates.  Simply append to the hostname a "|" followed
+Certificates that you created elsewhere can be used in the certificate map
+that this module creates.  Simply append to the hostname a "|" followed
 by an offset into `cert-ids`.  When you do that for the first hostname
 listed, you can also omit the hostname.
 
@@ -207,20 +232,21 @@ only needs read-only access to that zone.
 
 ## More Options
 
-See [Input Variables](/variables.tf) for details about all of the input
-variables you can use with this module.  Many less commonly used options
-are not covered in the above examples.
+See [Input Variables](#input-variables) or [variables.tf](/variables.tf) for
+details about all of the input variables you can use with this module.  Many
+less commonly used options are not covered in the above examples.
 
 See [Output](/outputs.tf) for the declarations of all available output
 values.  Every created resource will be included in one of the output
 values.
 
-As documented, you can use `module.NAME.map1[0].id` to associate the
+As documented, you can use `module.NAME.map-id1[0]` to associate the
 created certificate map with a load balancer.
 
-You can use `module.NAME.certs[HOSTNAME]` to access items in the
-`.provisioning_issue` and `.authorization_attempt_info` records to get
-information about the status of a certificate.
+You can use the output values `module.NAME.dns-certs[HOSTNAME]` and
+`module.NAME.lb-certs[HOSTNAME]` to access items in the `.provisioning_issue`
+and `.authorization_attempt_info` records to get information about the status
+of a certificate.
 
 
 ## Infrastructure Created
@@ -332,6 +358,25 @@ records for the non-PRIMARY entries.
 
 
 ## Limitations
+
+* [Google Providers](#google-providers)
+* [Deletions](#deletions)
+* [Types Of Certificates](#types-of-certificates)
+* [Types Of Certificate Map Entries](#types-of-certificate-map-Entries)
+
+### Google Providers
+
+This module uses the `google-beta` provider and allows the user to control
+which version (via standard Terraform features for such).  We would like
+to allow the user to pick between using the `google` and the `google-beta`
+provider, but Terraform does not allow such flexibility with provider
+usage in modules at this time.
+
+You must use at least v4.30 of the `google-beta` provider as earlier
+versions did not support Cloud Certificate Manager.
+
+You must use at least Terraform v0.13 as the module uses some features
+that were not available in earlier versions.
 
 ### Deletions
 
@@ -450,20 +495,6 @@ to run `terraform init` again.
 This module does not support having multiple certificates per map entry.
 
 It does not support creating certificate maps that lack a "PRIMARY" entry.
-
-### Google Providers
-
-This module uses the `google-beta` provider and allows the user to control
-which version (via standard Terraform features for such).  We would like
-to allow the user to pick between using the `google` and the `google-beta`
-provider, but Terraform does not allow such flexibility with provider
-usage in modules at this time.
-
-You must use at least v4.30 of the `google-beta` provider as earlier
-versions did not support Cloud Certificate Manager.
-
-You must use at least Terraform v0.13 as the module uses some features
-that were not available in earlier versions.
 
 
 ## Input Variables
