@@ -394,10 +394,22 @@ deleting the prior version (which is itself unlikely and is sometimes not
 even supported by GCP), a newly created certificate is not immediately
 active.
 
-To make changes without disruption, first add a second certificate map.
-Also, all of the future certificates need to be DNS-authorized or
-customer-managed certificates as LB-authorized certificates just cannot
-be migrated to without disruption.
+To make changes without disruption, you first need to add a second
+certificate map.  Also, all of the future certificates need to be
+DNS-authorized or customer-managed certificates as LB-authorized
+certificates just cannot be migrated to without disruption.
+
+[If you are using the [http-ingress](
+https://github.com/TyeMcQueen/terraform-google-http-ingress) or
+[ingress-to-gke](
+https://github.com/TyeMcQueen/terraform-google-ingress-to-gke) module in
+a way where it uses this (the certificate-map-simple module) directly,
+then this is the point where you need to "unnest" the module invocations
+by calling this module directly and passing the created certificate map's
+ID to the other module (removing `map-name` and adding `cert-map-ref`).
+Then `plan` those changes and verify that you did the unnesting correctly
+by noting that Terraform sees no need to make any changes to your actual
+infrastructure.]
 
 For example, consider the below simple module invocation.
 
