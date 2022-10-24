@@ -179,9 +179,12 @@ variable "project" {
 variable "name-prefix" {
   description   = <<-EOD
     An optional prefix string to prepend to GCP resource `name`s for both
-    DNS Authorization resources and Certificate resources.  Can be useful
-    when migrating to a new configuration that uses some of the same
-    hostnames as the configuration you are migrating away from.
+    DNS Authorization resources and Certificate resources.
+
+    Can be useful when migrating to a new configuration that uses some of
+    the same hostnames as the configuration you are migrating away from
+    (but currently won't work for that for DNS Authorizations due to a
+    limitation in Cloud Certificate Manager).
 
     Example: name-prefix = "v2-"
   EOD

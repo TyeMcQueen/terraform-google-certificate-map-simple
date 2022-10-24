@@ -281,7 +281,7 @@ You could get the `.id` for the wildcard cert created via
 ### DNS-Authorized SSL Certificates
 
 For each hostname you list (in `hostnames1` or `hostnames2`) that does not
-contain a "|", a DNS-Authorized SSL Certificate is created.  When this module
+contain a "|", a DNS-authorized SSL Certificate is created.  When this module
 creates such a certificate, it also creates a DNS Authorization and the DNS
 Record that fulfills that authorization.  This last item requires write
 access to the GCP-Managed DNS Zone where the hostname would be registered.
@@ -361,6 +361,7 @@ records for the non-PRIMARY entries.
 
 * [Google Providers](#google-providers)
 * [Deletions](#deletions)
+* [Unique DNS Authorizations](#unique-dns-authorizations)
 * [Types Of Certificates](#types-of-certificates)
 * [Types Of Certificate Map Entries](#types-of-certificate-map-Entries)
 
@@ -477,6 +478,38 @@ The end result will also stay uglier because it is impossible to transfer
 a DNS-authorized cert created by the first invocation of the module to
 the second.  This is why the module itself allows for creating a pair of
 certificate maps (that can share certificates created by the module).
+
+### Unique DNS Authorizations
+
+This is not a limitation of this module but is a significant limitation of
+Cloud Certificate Manager at the time of this writing.  DNS Authorizations
+must be unique across all of GCP for each domain.  This means that trying
+to create a DNS Authorization for the same domain in the same project will
+fail to `apply`.  Creating duplicate DNS Authorizations in different projects
+will mean that only one of them can be active at a time (because they each
+will use the same challenge record name but require different data in it).
+
+Each DNS-authorized certificate must link to a valid (but not necessarily
+active) DNS Authorization so you can't have duplicate DNS-authorized certs
+in a single GCP project.  This has a couple of implications for the use of
+this module.
+
+First, changing the value of `name-prefix` while keeping at least one
+DNS-authorized cert configured will fail to `apply`.  To change
+`name-prefix`, you must first remove all DNS-authorized certs, then you
+can change `name-prefix`, and then add the DNS-authorized certs in a
+third `apply`.
+
+Second, doing a disruption-free migration from a configuration that is
+using a DNS-authorized cert will require sharing the cert between the
+new and old certificate maps (unless you use a customer-managed cert
+as a replacement in the new certificate map).  This is best done by using
+both `map-name1` and `map-name2` as described above.
+
+Though it is possible to reference a DNS-authorized cert created by one
+invocation of this module in a new invocation of it.  But then it will
+not be simple to migrate the ownership of the DNS Authorization to the
+new invocation after the migration.
 
 ### Types Of Certificates
 
