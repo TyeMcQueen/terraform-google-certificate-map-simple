@@ -46,7 +46,7 @@ locals {
 
 # Look up managed DNS zone created elsewhere:
 data "google_dns_managed_zone" "z" {
-  count     = local.dns-data-title == "" ? 0 : 1
+  count     = var.dns-zone-ref == "" ? 0 : 1
   name      = local.dns-data-title
   project   = local.zone-proj
 }
