@@ -22,9 +22,8 @@ output "map-id2" {
 }
 
 output "keys" {
-  description   = (
-    "List of fully qualified hostnames, used as keys in the below maps" )
-  value         = local.fqs
+  description   = "List of hostnames, used as keys in the below maps"
+  value         = local.keys
 }
 
 output "dns-auths" {

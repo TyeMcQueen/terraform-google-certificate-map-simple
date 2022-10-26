@@ -162,9 +162,8 @@ will only create the certificates and not any certificate maps.
     }
 
 You could use the 2nd ("api") certificate above via the output
-value `module.my-certs.dns-certs[module.my-certs.keys[1]].id`.
-Or you can use the _fully qualified_ hostname as the key, like
-`module.my-certs.dns-certs["api.my-domain.com"].id`.
+value `module.my-certs.dns-certs["api"].id` or
+`module.my-certs.dns-certs[module.my-certs.keys[1]].id`.
 
 
 ## Wildcard Certificate Map
@@ -262,10 +261,10 @@ with this.
 ### Output Value Maps
 
 The resource records for most of the infrastructure created are returned in
-output values that are maps where the keys are fully qualified hostnames.
-The output value `module.NAME.keys` is the list of these fully qualified
-hostnames, first those from `hostnames1` followed by those from `hostnames2`,
-but skipping any duplicates (and any hostnames that end in just "|").
+output values that are maps where the key is the hostname (minus any "|"
+suffix).  The output value `module.NAME.keys` is the list of these hostnames,
+first those from `hostnames1` followed by those from `hostnames2`, but
+skipping any duplicates (and any hostnames that end in just "|").
 
 For example, consider this invocation of the module:
 
@@ -275,7 +274,7 @@ For example, consider this invocation of the module:
     } #                  0      1    2
 
 You could get the `.id` for the wildcard cert created via
-`module.my-certs.dns-certs["*.my-domain.com"].id` or via
+`module.my-certs.dns-certs["*"].id` or via
 `module.my-certs.dns-certs[module.my-certs.keys[1]].id`.
 
 ### DNS-Authorized SSL Certificates
@@ -353,8 +352,8 @@ of many different resource blocks.  These are combined into 4 different
 output values: `primary1`, `others1`, `primary2`, and `others2`.  The
 `primary1` and `primary2` values will each be a 0- or 1-entry list containing
 the resource records for the PRIMARY entries.  The `others1` and `others2`
-value will each be a Terraform map from fully qualified hostnames to resource
-records for the non-PRIMARY entries.
+value will each be a Terraform map from hostnames to resource records for
+the non-PRIMARY entries.
 
 
 ## Limitations
