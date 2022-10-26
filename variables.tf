@@ -106,26 +106,25 @@ variable "cert-ids" {
 variable "dns-zone-ref" {
   description   = <<-EOD
     Either the name given to a GCP-Managed DNS Zone resource in this project,
-    "$${project-id}/$${name}" for a DNS Zone in a different project, or ""
-    to not use such a Zone.  This is where records to meet DNS authorization
-    challenges will be added.  The `.dns_name` of the zone will also be
-    appended to any hostnames that contain no "." characters or that end in
-    ".".
+    "$${project-id}/$${name}" for a DNS Zone in a different project, just
+    the `.id` of such a resource, or "" to not use such a Zone.  This is
+    where records to meet DNS authorization challenges will be added.  The
+    `.dns_name` of the zone will also be appended to any hostnames that
+    contain no "." characters or that end in ".".
 
     If the DNS zone is managed by this Terraform workspace, then it is best
     if you set this value by referencing the resource block that creates
-    the zone, like `dns-zone-ref = google_dns_managed_zone.my-zone.name`.
+    the zone, like `dns-zone-ref = google_dns_managed_zone.my-zone.id`.
     This tells Terraform of the dependency, ensuring that the zone creation
     will happen before the module is invoked.
 
     If all of your hostnames contain "|" (followed by "LB" or a certificate
-    `.id`), then you can set `dns-zone-ref = ""` which would require that
+    `.id`), then you can leave `dns-zone-ref` as "" which would require that
     every hostname be fully qualified, containing at least one "." character
     and not ending with a "." character.
 
     Examples:
-      dns-zone-ref = "my-dns-zone"
-      dns-zone-ref = google_dns_managed_zone.my-zone.name
+      dns-zone-ref = google_dns_managed_zone.my-zone.id
   EOD
   type          = string
   default       = ""

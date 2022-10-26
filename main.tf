@@ -35,13 +35,16 @@ resource "google_project_service" "required" {
 locals {
   # Parse var.dns-zone-ref to get a project ID and a managed zone title:
   dns-parts = split( "/", var.dns-zone-ref )
-  zone-proj = ( 2 == length(local.dns-parts)
-    ? local.dns-parts[0] : local.project )
+  zone-proj = (
+    1 == length(local.dns-parts) ? local.project :
+    2 == length(local.dns-parts) ? local.dns-parts[0] :
+    "projects" == local.dns-parts[0] ? local.dns-parts[1] :
+    "ERROR dns-zone-ref URL starts not with projects/ (${var.dns-zone-ref})" )
   # Only use local.dns-data-title in 'data "google_dns_managed_zone"' block:
   dns-data-title = ( var.dns-zone-ref == "" ? "" :
-    2 == length(local.dns-parts) ? local.dns-parts[1] :
     1 == length(local.dns-parts) ? local.dns-parts[0] :
-    "ERROR For dns-zone-ref, resource ID is not supported (${var.dns-zone-ref})" )
+    2 == length(local.dns-parts) ? local.dns-parts[1] :
+      local.dns-parts[ length(local.dns-parts) - 1 ] )
 }
 
 # Look up managed DNS zone created elsewhere:
