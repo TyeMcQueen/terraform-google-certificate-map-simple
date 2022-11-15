@@ -107,7 +107,10 @@ locals {
 
   # Map from host to usable resource name version of it:
   htoname = { for h in local.keys : h => (
-    lower(replace( replace(local.htofq[h],"*",var.star), ".", "-" )) ) }
+    substr(
+      lower(replace( replace(local.htofq[h],"*",var.star), ".", "-" )),
+      0, 63,
+    ) ) }
 
   # Hostnames for DNS-authorized certs:
   dnsh  = [ for e, h in local.tohost : h if local.totype[e] == "DNS" ]
