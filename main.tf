@@ -280,7 +280,7 @@ resource "google_certificate_manager_certificate_map_entry" "ext1" {
   description   = var.description
   labels        = var.labels
   certificates  = [ var.cert-ids[tonumber(each.value)] ]
-  hostname      = local.htofq[each.value]
+  hostname      = local.htofq[each.key]
 }
 
 resource "google_certificate_manager_certificate_map_entry" "ext2" {
@@ -290,7 +290,7 @@ resource "google_certificate_manager_certificate_map_entry" "ext2" {
   description   = var.description
   labels        = var.labels
   certificates  = [ var.cert-ids[tonumber(each.value)] ]
-  hostname      = local.htofq[each.value]
+  hostname      = local.htofq[each.key]
 }
 
 resource "google_certificate_manager_certificate_map_entry" "dns1p" {
